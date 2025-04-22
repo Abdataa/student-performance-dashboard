@@ -5,9 +5,13 @@ venv/
 __pycache__/
 *.pyc
 
-# Model files 
-*.joblib
-*.pkl
+
 
 # Mac system file
 .DS_Store
+# Ignore unnecessary files
+*.zip
+*.rar
+*.tar.gz
+*.7z
+
