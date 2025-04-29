@@ -66,6 +66,17 @@ class User(db.Model):
     department    = db.Column(db.String(100), nullable=True)
     section       = db.Column(db.String(50),  nullable=True)
 
+ #------- //     ---------------------   
+class Course(db.Model):
+    __tablename__ = 'courses'
+    id           = db.Column(db.Integer, primary_key=True)
+    name         = db.Column(db.String(100), nullable=False)
+    department   = db.Column(db.String(100), nullable=False)
+    section      = db.Column(db.String(50), nullable=False)
+    instructor   = db.Column(db.String(80), nullable=True)  # optional username of teacher
+
+   
+
    
 
 # Create all tables
@@ -282,6 +293,113 @@ def add_registrar():
         flash('Registrar account created!', 'success')
         return redirect(url_for('dashboard_admin'))
     return render_template('add_registrar.html')
+
+
+# --- Admin: Add or Edit Any User ---
+@app.route('/admin/add-user', methods=['GET','POST'])
+@role_required('admin')
+def admin_add_user():
+    if request.method == 'POST':
+        # collect form inputs
+        username   = request.form['username']
+        email      = request.form['email']
+        password   = request.form['password']
+        role       = request.form['role']        # e.g. student/teacher/registrar
+        department = request.form.get('department')
+        section    = request.form.get('section')
+        # create & save
+        new = User(
+            username=username,
+            email=email,
+            password_hash=generate_password_hash(password),
+            role=role,
+            is_active=True,
+            department=department,
+            section=section
+        )
+        db.session.add(new)
+        db.session.commit()
+        flash(f'{role.capitalize()} created!', 'success')
+        return redirect(url_for('user_management'))
+    return render_template('admin_add_user.html')
+
+@app.route('/admin/edit-user/<int:user_id>', methods=['GET','POST'])
+@role_required('admin')
+def admin_edit_user(user_id):
+    u = User.query.get_or_404(user_id)
+    if request.method=='POST':
+        u.username   = request.form['username']
+        u.email      = request.form['email']
+        u.role       = request.form['role']
+        u.department = request.form.get('department')
+        u.section    = request.form.get('section')
+        u.password =request.form['password']
+        db.session.commit()
+        flash('User updated!', 'success')
+        return redirect(url_for('user_management'))
+    return render_template('admin_edit_user.html', u=u)
+
+@app.route('/admin/delete-user/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def admin_delete_user(user_id):
+    u = User.query.get_or_404(user_id)
+    db.session.delete(u)
+    db.session.commit()
+    flash('User deleted.', 'info')
+    return redirect(url_for('user_management'))
+##############
+
+
+# --- Admin: Manage Courses ---
+
+@app.route('/manage-courses')
+@role_required('admin')
+def manage_courses():
+    courses = Course.query.order_by(Course.department, Course.section, Course.name).all()
+    return render_template('manage_courses.html', courses=courses)
+
+@app.route('/manage-courses/add', methods=['GET','POST'])
+@role_required('admin')
+def add_course():
+    if request.method=='POST':
+        c = Course(
+            name       = request.form['name'],
+            department = request.form['department'],
+            section    = request.form['section'],
+            instructor = request.form.get('instructor') or None
+        )
+        db.session.add(c)
+        db.session.commit()
+        flash('Course added!', 'success')
+        return redirect(url_for('manage_courses'))
+    return render_template('add_course.html')
+
+@app.route('/manage-courses/edit/<int:course_id>', methods=['GET','POST'])
+@role_required('admin')
+def edit_course(course_id):
+    c = Course.query.get_or_404(course_id)
+    if request.method=='POST':
+        c.name       = request.form['name']
+        c.department = request.form['department']
+        c.section    = request.form['section']
+        c.instructor = request.form.get('instructor') or None
+        db.session.commit()
+        flash('Course updated!', 'success')
+        return redirect(url_for('manage_courses'))
+    return render_template('edit_course.html', course=c)
+
+@app.route('/manage-courses/delete/<int:course_id>', methods=['POST'])
+@role_required('admin')
+def delete_course(course_id):
+    c = Course.query.get_or_404(course_id)
+    db.session.delete(c)
+    db.session.commit()
+    flash('Course deleted.', 'info')
+    return redirect(url_for('manage_courses'))
+
+
+
+
 
 # --- Registrar: Add Student or Teacher ---
 @app.route('/registrar/add-user', methods=['GET','POST'])
