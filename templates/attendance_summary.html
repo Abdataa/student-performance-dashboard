@@ -1,0 +1,16 @@
+<!-- templates/attendance_summary.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance Summary</title>
+</head>
+<body>
+  <h2>Attendance Summary</h2>
+  <ul>
+    {% for course, info in summary.items() %}
+      <li>{{ course }}: {{ info }}</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

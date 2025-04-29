@@ -1,34 +1,15 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Result</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Prediction Result</title></head>
 <body>
-    <!-- Show the predicted grade -->
-    <h1>Predicted Grade: {{ grade }}</h1>
-    
-    <!-- Add the chart canvas -->
-    <canvas id="gradeChart" width="400" height="200"></canvas>
-    
-    <script>
-      const ctx = document.getElementById('gradeChart');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Math', 'Reading', 'Writing'],
-          datasets: [{
-            label: 'Scores',
-            data: [{{ math }}, {{ reading }}, {{ writing }}],
-            backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe']
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true, max: 100 }
-          }
-        }
-      });
-    </script>
+  <h2>Prediction Result</h2>
+  <p><strong>Predicted Grade (G3):</strong> {{ predicted_grade }}</p>
+  <p><strong>At Risk:</strong> {{ risk_status }}</p>
+  <p><strong>Recommendation:</strong> {{ recommendation }}</p>
+
++ <p><a href="{{ url_for('export_pdf') }}" target="_blank">📄 Export as PDF</a></p>
+
+  <a href="{{ url_for('dashboard_student') }}">Go Back</a>
 </body>
 </html>
+

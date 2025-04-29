@@ -1,0 +1,16 @@
+<!-- templates/grade_distribution.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grade Distribution</title>
+</head>
+<body>
+  <h2>Grade Distribution</h2>
+  <ul>
+    {% for grade, count in distribution.items() %}
+      <li>Grade {{ grade }}: {{ count }} students</li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

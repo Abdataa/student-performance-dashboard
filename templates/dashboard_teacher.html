@@ -1,0 +1,28 @@
+<!-- templates/dashboard_teacher.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Teacher Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Welcome, {{ name }} (Teacher)</h1>
+  <nav>
+    <ul>
+-     <li><a href="/dashboard/teacher">Dashboard Home</a></li>
+-     <li><a href="/upload-grades">Upload Grades</a></li>
++     <li><a href="{{ url_for('dashboard_teacher') }}">Dashboard Home</a></li>
++   <li><a href="{{ url_for('create_assessment_form') }}">New Assessment Form</a></li>
+<li><a href="{{ url_for('list_assessment_forms') }}">View My Forms</a></li>
+
+      <li><a href="{{ url_for('upload_attendance') }}">Upload Attendance</a></li>
++     <li><a href="{{ url_for('profile') }}">My Profile</a></li>
+      <li><a href="{{ url_for('logout') }}">Logout</a></li>
+    </ul>
+  </nav>
+  <main>
+    <p>Upload student grades and attendance records here.</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Predict Performance</title>
+</head>
+<body>
+  <h2>Enter Your Academic Data</h2>
+  <form method="POST" action="{{ url_for('predict') }}">
+    {% for feat in ['G1','G2','studytime','failures','absences','age','Dalc','goout'] %}
+      <label>{{ feat }}:
+        <input type="number" name="{{ feat }}" step="0.1" required>
+      </label><br>
+    {% endfor %}
+    <label>Wants Higher Ed?
+      <select name="higher">
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </label><br><br>
+    <button type="submit">Submit for Prediction</button>
+  </form>
+  <p><a href="{{ url_for('dashboard_student') }}">Back to Dashboard</a></p>
+</body>
+</html>

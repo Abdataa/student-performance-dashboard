@@ -1,0 +1,28 @@
+<!-- templates/grade_upload_results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grade Upload Results</title>
+</head>
+<body>
+  <h2>Grade Predictions</h2>
+  <table border="1">
+    <tr>
+      <th>Username</th>
+      <th>Predicted Grade (G3)</th>
+      <th>Risk Status</th>
+      <th>Recommendation</th>
+    </tr>
+    {% for row in results %}
+    <tr>
+      <td>{{ row.username }}</td>
+      <td>{{ row.g3 }}</td>
+      <td>{{ row.risk }}</td>
+      <td>{{ row.recommendation }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p><a href="{{ url_for('dashboard_teacher') }}">Back to Dashboard</a></p>
+</body>
+</html>

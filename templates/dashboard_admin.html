@@ -1,0 +1,42 @@
+<!-- templates/dashboard_admin.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Welcome, {{ name }} (Admin)</h1>
+  <nav>
+    <ul>
+      <li><a href="/dashboard/admin">Dashboard Home</a></li>
+      <li><a href="/admin-stats">System Statistics</a></li>
+      <li><a href="/user-management">Manage Users</a></li>
+      <li><a href="/registrations">Approve Registrations</a></li>
+      <li><a href="/teacher-uploads">View Teacher Uploads</a></li>
+      <li><a href="/attendance-summary">Attendance Summary</a></li>
+      <li><a href="/grade-distribution">Grade Distribution</a></li>
+      <li><a href="/notification-center">Notification Center</a></li>
+      <li><a href="/course-management">Manage Courses</a></li>
+      <li><a href="/settings">System Settings</a></li>
+      <li><a href="/logout">Logout</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section>
+      <h2>System Overview</h2>
+      <p>Monitor overall system usage, user registrations, and recent activity.</p>
+    </section>
+    <section>
+      <h2>Quick Actions</h2>
+      <ul>
+        <li><a href="/user-management">Add/Remove Users</a></li>
+        <li><a href="/course-management">Manage Courses</a></li>
+        <li><a href="{{ url_for('add_registrar') }}">Add Registrar</a></li>
+        <li><a href="/settings">System Settings</a></li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

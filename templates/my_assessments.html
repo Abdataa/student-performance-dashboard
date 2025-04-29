@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>My Assessments</title></head>
+<body>
+  <h2>Assessments for {{ me.department }} – Section {{ me.section }}</h2>
+  {% if forms %}
+    <ul>
+    {% for f in forms %}
+      <li>
+        <strong>{{ f.course }}</strong><br>
+        Quiz {{ f.quiz_weight }}%, Test1 {{ f.test1_weight }}%, Test2 {{ f.test2_weight }}%,<br>
+        Mid {{ f.mid_weight }}%, Project {{ f.project_weight }}%, Assign {{ f.assign_weight }}%, Final {{ f.final_weight }}%
+      </li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>No assessment forms assigned to your section yet.</p>
+  {% endif %}
+  <p><a href="{{ url_for('dashboard_student') }}">Back to Dashboard</a></p>
+</body>
+</html>

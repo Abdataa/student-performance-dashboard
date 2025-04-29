@@ -1,0 +1,22 @@
+<!-- templates/simulate_form.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulate Performance</title>
+</head>
+<body>
+  <h2>Simulate Student Final Grade</h2>
+  <form method="POST" action="{{ url_for('simulate_performance') }}">
+    <label>Test1 Score (G1):</label><br>
+    <input type="number" name="G1" step="0.1" required><br><br>
+
+    <label>Test2 Score (G2):</label><br>
+    <input type="number" name="G2" step="0.1" required><br><br>
+
+    <button type="submit">Predict Final Grade</button>
+  </form>
+  <p><a href="{{ url_for('dashboard_teacher') }}">Back to Dashboard</a></p>
+</body>
+</html>
+

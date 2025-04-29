@@ -1,0 +1,20 @@
+<!-- templates/notification_center.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notification Center</title>
+</head>
+<body>
+  <h2>Notifications</h2>
+  {% if notifications %}
+    <ul>
+      {% for note in notifications %}
+        <li>{{ note }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No notifications.</p>
+  {% endif %}
+</body>
+</html>

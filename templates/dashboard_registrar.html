@@ -1,0 +1,87 @@
+<!-- templates/dashboard_registrar.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrar Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Welcome, {{ name }} (Registrar)</h1>
+  <nav>
+    <ul>
+      <li><a href="/dashboard/registrar">Dashboard Home</a></li>
+      <li><a href="/registrations">Pending Registrations</a></li>
+      <li><a href="{{ url_for('add_user') }}">Add Student/Teacher</a></li>
+      <!-- In templates/dashboard_registrar.html -->
+<table class="table table-striped">
+  <thead>
+      <tr>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Department</th>
+          <th>Section</th>
+          <th>Status</th>
+          <th>Actions</th>  <!-- New Actions column -->
+      </tr>
+  </thead>
+  <tbody>
+      {% for user in users %}
+      <tr>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.role }}</td>
+          <td>{{ user.department }}</td>
+          <td>{{ user.section }}</td>
+          <td>{{ 'Active' if user.is_active else 'Inactive' }}</td>
+          <td>
+              <!-- Existing Toggle Form -->
+              <form method="POST" action="{{ url_for('toggle_user', user_id=user.id) }}" style="display: inline;">
+                  <button type="submit" class="btn btn-sm btn-secondary">
+                      {{ 'Deactivate' if user.is_active else 'Activate' }}
+                  </button>
+              </form>
+              
+              <!-- New Edit Button -->
+              <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-primary">
+                  Edit
+              </a>
+          </td>
+      </tr>
+      {% endfor %}
+  </tbody>
+</table>
+
+
+      <li><a href="/logout">Logout</a></li>
+    </ul>
+  </nav>
+  <main>
+    <p>Approve or reject new student registrations.</p>
+  </main>
+  <h2>All Users</h2>
+<table border="1">
+  <tr>
+    <th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th>
+  </tr>
+  {% for u in users %}
+  <tr>
+    <td>{{ u.id }}</td>
+    <td>{{ u.username }}</td>
+    <td>{{ u.email }}</td>
+    <td>{{ u.role }}</td>
+    <td>{{ 'Active' if u.is_active else 'Inactive' }}</td>
+    <td>
+      <form method="POST" action="{{ url_for('toggle_user', user_id=u.id) }}">
+        <button type="submit">
+          {{ 'Deactivate' if u.is_active else 'Activate' }}
+        </button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+</body>
+</html>

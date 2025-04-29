@@ -1,0 +1,40 @@
+<!-- templates/registrations.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pending Registrations</title>
+</head>
+<body>
+  <h2>Pending Student Registrations</h2>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+    <p style="color: {% if category == 'danger' %}red{% elif category == 'success' %}green{% else %}black{% endif %};">
+        {{ message }}
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+  <table border="1">
+    <tr><th>ID</th><th>Username</th><th>Email</th><th>Approve/Reject</th></tr>
+    {% for s in pending %}
+      <tr>
+        <td>{{ s.id }}</td>
+        <td>{{ s.username }}</td>
+        <td>{{ s.email }}</td>
+        <td>
+          <form method="post" action="{{ url_for('approve', user_id=s.id) }}" style="display:inline">
+            <button type="submit">Approve</button>
+          </form>
+          <form method="post" action="{{ url_for('reject', user_id=s.id) }}" style="display:inline">
+            <button type="submit">Reject</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">No pending registrations.</td></tr>
+    {% endfor %}
+  </table>
+  <p><a href="{{ url_for('dashboard_admin') }}">Back to Admin Dashboard</a></p>
+</body>
+</html>

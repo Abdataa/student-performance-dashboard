@@ -1,0 +1,28 @@
+<!-- templates/dashboard_student.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Welcome, {{ name }} (Student)</h1>
+  <nav>
+    <ul>
+      <li><a href="/dashboard/student">Dashboard Home</a></li>
+    - <li><a href="/predict">Predict Performance</a></li>
+    + <li><a href="{{ url_for('predict_form') }}">Predict Performance</a></li>
+    <li><a href="{{ url_for('my_assessments') }}">My Assessments</a></li>
+
+
+
+
+      <li><a href="/logout">Logout</a></li>
+    </ul>
+  </nav>
+  <main>
+    <p>Use the Predict Performance link to enter your academic data.</p>
+  </main>
+</body>
+</html>

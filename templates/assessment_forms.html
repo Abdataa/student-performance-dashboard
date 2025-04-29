@@ -1,0 +1,25 @@
+<!-- templates/assessment_forms.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Assessment Forms</title>
+</head>
+<body>
+  <h2>Your Assessment Forms</h2>
+  <ul>
+    {% for f in forms %}
+      <li>
+        {{ f.course }} - {{ f.department }} (Section {{ f.section }})<br>
+        Weights: Quiz {{ f.quiz_weight }}%, Test1 {{ f.test1_weight }}%, Test2 {{ f.test2_weight }}%,
+        Midterm {{ f.mid_weight }}%, Project {{ f.project_weight }}%, Assignment {{ f.assign_weight }}%,
+        Final {{ f.final_weight }}%
+      </li>
+    {% else %}
+      <li>No assessment forms created yet.</li>
+    {% endfor %}
+  </ul>
+  <p><a href="{{ url_for('dashboard_teacher') }}">Back to Dashboard</a></p>
+</body>
+</html>
+

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Add Registrar</title></head>
+<body>
+  <h2>Create Registrar Account</h2>
+  <form method="POST">
+    <label>Username:<input name="username" required></label><br>
+    <label>Email:<input type="email" name="email" required></label><br>
+    <label>Password:<input type="password" name="password" required></label><br>
+    <button type="submit">Create Registrar</button>
+  </form>
+  <p><a href="{{ url_for('dashboard_admin') }}">Back to Admin Dashboard</a></p>
+</body>
+</html>

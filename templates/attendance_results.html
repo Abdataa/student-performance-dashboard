@@ -1,0 +1,26 @@
+<!-- templates/attendance_results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance Summary</title>
+</head>
+<body>
+  <h2>Uploaded Attendance Records</h2>
+  <table border="1">
+    <tr>
+      {% for key in attendance[0].keys() %}
+      <th>{{ key }}</th>
+      {% endfor %}
+    </tr>
+    {% for record in attendance %}
+    <tr>
+      {% for value in record.values() %}
+      <td>{{ value }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+  <p><a href="{{ url_for('dashboard_teacher') }}">Back to Dashboard</a></p>
+</body>
+</html>

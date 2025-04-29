@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Attendance</title>
+</head>
+<body>
+  <h2>My Attendance Records</h2>
+  <table border="1">
+    <tr><th>Date</th><th>Status</th></tr>
+    {% for rec in records %}
+      <tr>
+        <td>{{ rec.date.strftime('%Y-%m-%d') }}</td>
+        <td>{{ rec.status }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+  <p><a href="{{ url_for('dashboard_student') }}">Back to Dashboard</a></p>
+</body>
+</html>

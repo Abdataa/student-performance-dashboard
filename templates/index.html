@@ -1,14 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Student Performance Predictor</title>
+    <meta charset="UTF-8">
+    <title>Student Performance Prediction</title>
 </head>
 <body>
-    <h1>Enter Scores</h1>
+    <h2>Enter Student Data</h2>
     <form action="/predict" method="post">
-        Math: <input type="number" name="math_score" required><br>
-        Reading: <input type="number" name="reading_score" required><br>
-        Writing: <input type="number" name="writing_score" required><br>
+        <label>G1: <input type="number" name="G1" step="0.1" required></label><br>
+        <label>G2: <input type="number" name="G2" step="0.1" required></label><br>
+
+        <label>Failures: <input type="number" name="failures" min="0" max="4" required></label><br>
+        <label>Absences: <input type='number' name="absences"min=0 max="36"required> </label><br>
+        <label for="higher">Wants Higher Education?</label>
+        <select name="higher" id="higher" required>
+           <option value="yes">Yes</option>
+            <option value="no">No</option>
+        </select><br>
+
+
+
+        <label>Study Time (1–4): <input type="number" name="studytime" min="1" max="4" required></label><br>
+        
+        <label>Age: <input type="number" name="age" min="10" max="30" required></label><br>
+
+        <label>Daily Alcohol (0–5): <input type="number" name="Dalc" min="0" max="5" required></label><br>
+        <label> Go out(Walk) (0–5): <input type="number" name="goout" min="0" max="5" required></label><br>
+
+
+        
+
         <input type="submit" value="Predict">
     </form>
 </body>
