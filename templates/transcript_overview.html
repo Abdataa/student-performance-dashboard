@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Academic Transcripts</h2>
+    <div class="list-group">
+        {% for sem in semesters %}
+        <a href="{{ url_for('transcript', sem_id=sem.id) }}" 
+           class="list-group-item list-group-item-action">
+            {{ sem.name }} - {{ 'Current' if sem.is_open else 'Completed' }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

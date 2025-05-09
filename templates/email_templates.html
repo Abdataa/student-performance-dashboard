@@ -1,0 +1,27 @@
+<!-- templates/email_templates.html -->
+{% extends "base.html" %}
+{% block title %}Email Templates{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="form-group">
+                <label>Registration Email Template</label>
+                <textarea name="registration_template" 
+                          class="form-control" 
+                          rows="6">{{ config.registration_template }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Password Reset Template</label>
+                <textarea name="password_reset_template" 
+                          class="form-control" 
+                          rows="6">{{ config.password_reset_template }}</textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Save Templates</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

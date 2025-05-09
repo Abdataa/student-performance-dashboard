@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Semester Management</h2>
+    <a href="{{ url_for('add_semester') }}" class="btn btn-primary mb-3">
+        Add New Semester
+    </a>
+    
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Semester</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sem in semesters %}
+                    <tr>
+                        <td>{{ sem.name }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if sem.is_open else 'secondary' }}">
+                                {{ 'Open' if sem.is_open else 'Closed' }}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('toggle_semester', sem_id=sem.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-{{ 'danger' if sem.is_open else 'success' }}">
+                                    {{ 'Close' if sem.is_open else 'Open' }}
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

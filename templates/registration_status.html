@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Registration Status Overview</h2>
+    
+    <div class="mb-3">
+        <a href="?status=all" class="btn btn-secondary">All</a>
+        <a href="?status=Pending" class="btn btn-warning">Pending</a>
+        <a href="?status=Approved" class="btn btn-success">Approved</a>
+        <a href="?status=Rejected" class="btn btn-danger">Rejected</a>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            Registrations - {{ current_filter|capitalize }}
+        </div>
+        
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Semester</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reg in registrations %}
+                        <tr>
+                            <td>{{ reg.student.username }}</td>
+                            <td>{{ reg.semester.name }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if reg.status == 'Approved' %}bg-success
+                                    {% elif reg.status == 'Pending' %}bg-warning
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ reg.status }}
+                                </span>
+                            </td>
+                            <td>{{ reg.timestamp.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if reg.status == 'Pending' %}
+                                <div class="btn-group" role="group" aria-label="Approval Actions">
+                                    <!-- Inside the approval form -->
+                                    <form method="POST" action="{{ url_for('approve_semester', reg_id=reg.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            Approve
+                                        </button>
+                                    </form>
+                                    
+                                    <!-- Inside the rejection form -->
+                                    <form method="POST" action="{{ url_for('reject_semester', reg_id=reg.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            Reject
+                                        </button>
+                                    </form>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

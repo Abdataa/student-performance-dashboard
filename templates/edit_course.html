@@ -1,0 +1,11 @@
+<h2>Edit Course #{{ course.id }}</h2>
+<form method="POST">
+  <label>Name:       <input name="name" value="{{ course.name }}" required></label><br>
+  <label>Department: <input name="department" value="{{ course.department }}" required></label><br>
+  <label>Section:    <input name="section" value="{{ course.section }}" required></label><br>
+  <label>Instructor (username): 
+    <input name="instructor" value="{{ course.instructor or '' }}">
+  </label><br>
+  <button type="submit">Save Changes</button>
+</form>
+<p><a href="{{ url_for('manage_courses') }}">Back to Courses</a></p>

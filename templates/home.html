@@ -1,0 +1,25 @@
+<!-- templates/home.html -->
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Student Performance System</h1>
+    <p class="lead">Comprehensive platform for managing student data and performance predictions</p>
+    <hr class="my-4">
+    <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}" role="button">Get Started</a>
+</div>
+
+<h3>Latest Updates</h3>
+<div class="row">
+    {% for announcement in announcements %}
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5>{{ announcement.title }}</h5>
+                <p class="card-text">{{ announcement.content|truncate(100) }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

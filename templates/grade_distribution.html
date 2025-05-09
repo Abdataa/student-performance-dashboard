@@ -1,16 +1,34 @@
-<!-- templates/grade_distribution.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Grade Distribution</title>
-</head>
-<body>
-  <h2>Grade Distribution</h2>
-  <ul>
-    {% for grade, count in distribution.items() %}
-      <li>Grade {{ grade }}: {{ count }} students</li>
-    {% endfor %}
-  </ul>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Grade Distribution</h2>
+    <div class="card">
+        <div class="card-body">
+            <canvas id="gradeChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('gradeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: {{ grades|map(attribute='0')|list|tojson }},
+            datasets: [{
+                label: 'Number of Students',
+                data: {{ grades|map(attribute='1')|list|tojson }},
+                backgroundColor: '#4e73df'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+</script>
+{% endblock %}

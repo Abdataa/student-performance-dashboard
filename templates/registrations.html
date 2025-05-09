@@ -12,6 +12,7 @@
     {% for category, message in messages %}
     <p style="color: {% if category == 'danger' %}red{% elif category == 'success' %}green{% else %}black{% endif %};">
         {{ message }}
+    </p>
     {% endfor %}
   {% endif %}
 {% endwith %}

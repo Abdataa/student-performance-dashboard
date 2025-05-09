@@ -1,0 +1,26 @@
+<!-- templates/admin_stats.html -->
+{% extends "base.html" %}
+{% block title %}Admin Statistics{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Total Users</h5>
+                <p class="display-4">{{ total_users }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <h4>User Distribution</h4>
+        <table class="table">
+            {% for role, count in role_counts.items() %}
+            <tr>
+                <td>{{ role|capitalize }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

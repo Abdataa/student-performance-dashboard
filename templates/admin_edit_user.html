@@ -1,0 +1,24 @@
+<h2>Edit User &#35;{{ u.id }}</h2>
+<form method="POST">
+  <label>Username:
+    <input name="username" value="{{ u.username }}" required>
+  </label><br>
+  <label>Email:
+    <input name="email" type="email" value="{{ u.email }}" required>
+  </label><br>
+  <label>Role:
+    <select name="role">
+      {% for r in ['student','teacher','registrar','admin'] %}
+        <option value="{{r}}" {% if u.role==r %}selected{% endif %}>{{r}}</option>
+      {% endfor %}
+    </select>
+  </label><br>
+  <label>Department:
+    <input name="department" value="{{ u.department or '' }}">
+  </label><br>
+  <label>Section:
+    <input name="section" value="{{ u.section or '' }}">
+  </label><br>
+  <button type="submit">Save Changes</button>
+</form>
+<p><a href="{{ url_for('user_management') }}">Back to Manage Users</a></p>

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+<!-- Add this at the top of the content block -->
+<div class="alert alert-info">
+    <strong>Current Selection:</strong> 
+    Department: {{ selected_dept or 'Not selected' }} | 
+    Section: {{ selected_section or 'Not selected' }}
+</div>
+{% block title %}Manage Students{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Manage Students by Department/Section</h2>
+    
+    <form method="POST" class="mb-4">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row">
+            <div class="col-md-5">
+                <label for="department-select" class="form-label">Department</label>
+                <select id="department-select" name="department" class="form-control" required>
+                    <option value="">Select Department</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.department }}" {% if dept.department == selected_dept %}selected{% endif %}>
+                        {{ dept.department }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="section-select" class="form-label">Section</label>
+                <select id="section-select" name="section" class="form-control" required>
+                    <option value="">Select Section</option>
+                    {% for sec in sections %}
+                    <option value="{{ sec.section }}" {% if sec.section == selected_section %}selected{% endif %}>
+                        {{ sec.section }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-block">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    {% if students %}
+    <div class="row">
+        <div class="col-md-8">
+            <h4>Students in {{ selected_dept }} - Section {{ selected_section }}</h4>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Section</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ student.username }}</td>
+                        <td>{{ student.email }}</td>
+                        <td>{{ student.department }}</td>
+                        <td>{{ student.section }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Assign Course Instructor</h5>
+                    <form method="POST" action="{{ url_for('assign_instructor') }}">
+                        <div class="form-group">
+                            <label>Select Course</label>
+                            <select name="course_id" class="form-control" required title="Select Course">
+                                {% for course in courses %}
+                                <option value="{{ course.id }}">
+                                    {{ course.name }} (Current: {{ course.instructor or 'None' }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Select Teacher</label>
+                            <select name="instructor" class="form-control" required title="Select Teacher">
+                                {% for teacher in teachers %}
+                                <option value="{{ teacher.username }}">{{ teacher.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success btn-block">
+                            Assign Instructor
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

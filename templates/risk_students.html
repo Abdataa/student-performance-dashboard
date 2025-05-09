@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>At-Risk Students</h2>
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Department</th>
+                        <th>Last Grade</th>
+                        <th>Risk Level</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>{{ student.username }}</td>
+                        <td>{{ student.department }}</td>
+                        <td>{% if student.assessment_results %}{{ student.assessment_results[-1].score }}{% else %}N/A{% endif %}</td>
+                        <td><span class="badge badge-danger">High Risk</span></td>
+                        <td>
+                            <a href="#" class="btn btn-sm btn-info">Intervention Plan</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

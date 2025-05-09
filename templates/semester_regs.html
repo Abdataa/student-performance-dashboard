@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Pending Semester Registrations</title>
+</head>
+<body>
+  <h2>Pending Semester Registrations</h2>
+  <table border="1">
+    <tr>
+      <th>ID</th><th>Student</th><th>Semester</th><th>Applied On</th><th>Actions</th>
+    </tr>
+    {% for reg in regs %}
+      <tr>
+        <td>{{ reg.id }}</td>
+        <td>{{ reg.student.username }}</td>
+        <td>{{ reg.semester.name }}</td>
+        <td>{{ reg.timestamp.strftime('%Y-%m-%d') }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('approve_semester', reg_id=reg.id) }}" style="display:inline">
+            <button type="submit">Approve</button>
+          </form>
+          <form method="POST" action="{{ url_for('reject_semester', reg_id=reg.id) }}" style="display:inline">
+            <button type="submit">Reject</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
+  <p><a href="{{ url_for('dashboard_admin') }}">Back to Admin Dashboard</a></p>
+</body>
+</html>

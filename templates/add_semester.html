@@ -1,0 +1,21 @@
+<!-- templates/add_semester.html -->
+
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Create New Semester</h2>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label>Semester Name</label>
+                    <input type="text" name="name" class="form-control" 
+                           placeholder="e.g., 2024 Fall Semester" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Semester</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

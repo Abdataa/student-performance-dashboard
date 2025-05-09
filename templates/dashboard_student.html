@@ -1,28 +1,76 @@
-<!-- templates/dashboard_student.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Student Dashboard</title>
-  <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-  <h1>Welcome, {{ name }} (Student)</h1>
-  <nav>
-    <ul>
-      <li><a href="/dashboard/student">Dashboard Home</a></li>
-    - <li><a href="/predict">Predict Performance</a></li>
-    + <li><a href="{{ url_for('predict_form') }}">Predict Performance</a></li>
-    <li><a href="{{ url_for('my_assessments') }}">My Assessments</a></li>
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Welcome, {{ name }}</h2>
+    
+    <div class="row">
+        <!-- Quick Actions -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">Quick Actions</div>
+                <div class="card-body">
+                    <a href="{{ url_for('register_semester') }}" class="btn btn-primary btn-block mb-2">
+                        Semester Registration
+                    </a>
+                    <a href="{{ url_for('predict_form') }}" class="btn btn-info btn-block mb-2">
+                        Performance Prediction
+                    </a>
+                    <a href="{{ url_for('view_attendance') }}" class="btn btn-warning btn-block">
+                        Attendance Records
+                    </a>
+                </div>
+            </div>
+        </div>
 
-
-
-
-      <li><a href="/logout">Logout</a></li>
-    </ul>
-  </nav>
-  <main>
-    <p>Use the Predict Performance link to enter your academic data.</p>
-  </main>
-</body>
-</html>
+        <!-- Academic Overview -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">Academic Overview</div>
+                <div class="card-body">
+                    <h5>Current Registrations</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Semester</th>
+                                <th>Status</th>
+                                <th>Registration Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reg in regs %}
+                            <tr>
+                                <td>{{ reg.semester.name }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if reg.status == 'Approved' %}bg-success
+                                        {% elif reg.status == 'Pending' %}bg-warning
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ reg.status }}
+                                    </span>
+                                </td>
+                                <td>{{ reg.timestamp.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <div class="mt-4">
+                        <h5>Quick Links</h5>
+                        <div class="list-group">
+                            <a href="{{ url_for('transcript', sem_id=0) }}" class="list-group-item">
+                                View Academic Transcript
+                            </a>
+                            <a href="{{ url_for('my_courses') }}" class="list-group-item">
+                                View Assigned Courses
+                            </a>
+                            <a href="{{ url_for('profile') }}" class="list-group-item">
+                                Update Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

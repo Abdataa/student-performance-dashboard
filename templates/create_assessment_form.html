@@ -1,45 +1,20 @@
 <!-- templates/create_assessment_form.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Create Assessment Form</title>
-</head>
-<body>
-  <h2>Create Assessment Form</h2>
-  <form method="POST" action="{{ url_for('create_assessment_form') }}">
-    <label>Course:</label><br>
-    <input type="text" name="course" required><br><br>
-
-    <label>Department:</label><br>
-    <input type="text" name="department" required><br><br>
-
-    <label>Section:</label><br>
-    <input type="text" name="section" required><br><br>
-
-    <label>Quiz Weight (%):</label><br>
-    <input type="number" name="quiz_weight" min="0" max="100" required><br><br>
-
-    <label>Test1 Weight (%):</label><br>
-    <input type="number" name="test1_weight" min="0" max="100" required><br><br>
-
-    <label>Test2 Weight (%):</label><br>
-    <input type="number" name="test2_weight" min="0" max="100" required><br><br>
-
-    <label>Midterm Weight (%):</label><br>
-    <input type="number" name="mid_weight" min="0" max="100" required><br><br>
-
-    <label>Project Weight (%):</label><br>
-    <input type="number" name="project_weight" min="0" max="100" required><br><br>
-
-    <label>Assignment Weight (%):</label><br>
-    <input type="number" name="assign_weight" min="0" max="100" required><br><br>
-
-    <label>Final Exam Weight (%):</label><br>
-    <input type="number" name="final_weight" min="0" max="100" required><br><br>
-
-    <button type="submit">Create</button>
-  </form>
-  <p><a href="{{ url_for('dashboard_teacher') }}">Back to Dashboard</a></p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Create Assessment Form{% endblock %}
+{% block content %}
+<h2>Create Assessment Form</h2>
+<form method="POST">
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label>Course</label>
+            <select name="course" class="form-control" required>
+                {% for course in courses %}
+                <option value="{{ course.name }}">{{ course.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Add other weight fields -->
+    </div>
+    <button type="submit" class="btn btn-primary">Create Form</button>
+</form>
+{% endblock %}

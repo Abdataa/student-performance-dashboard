@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}{% endblock %} - Student System</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+   <meta name="csrf-token" content="{{ csrf_token() }}">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Student System</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="navbar-nav mr-auto">
+                {% if session.role %}
+                    <a class="nav-item nav-link" href="{{ url_for('profile') }}">Profile</a>
+                    {% if session.role == 'student' %}
+                        <a class="nav-item nav-link" href="{{ url_for('predict_form') }}">Prediction</a>
+                        <a class="nav-item nav-link" href="{{ url_for('view_attendance') }}">Attendance</a>
+                    {% elif session.role == 'teacher' %}
+                        <a class="nav-item nav-link" href="{{ url_for('list_assessment_forms') }}">Assessment Forms</a>
+                        <a class="nav-item nav-link" href="{{ url_for('upload_attendance') }}">Upload Attendance</a>
+                    {% elif session.role == 'registrar' %}
+                        <a class="nav-item nav-link" href="{{ url_for('dashboard_registrar') }}">Semesters</a>
+                        <a class="nav-item nav-link" href="{{ url_for('add_user') }}">Add Users</a>
+                    {% elif session.role == 'admin' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button"
+                               data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Admin
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <a class="dropdown-item" href="{{ url_for('system_settings') }}">System Settings</a>
+                                <a class="dropdown-item" href="{{ url_for('audit_logs') }}">Audit Logs</a>
+                                <a class="dropdown-item" href="{{ url_for('system_backup') }}">Backup/Restore</a>
+                                <a class="dropdown-item" href="{{ url_for('email_templates') }}">Email Templates</a>
+                            </div>
+                        </li>
+                        <a class="nav-item nav-link" href="{{ url_for('user_management') }}">Users</a>
+                        <a class="nav-item nav-link" href="{{ url_for('manage_courses') }}">Courses</a>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <!-- Add this to the navigation section -->
+{% if session.role == 'registrar' %}
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('manage_students') }}">Student Management</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('add_semester') }}">Semesters</a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ url_for('add_user') }}">Add Users</a>
+</li>
+{% endif %}
+
+
+            <div class="navbar-nav">
+                {% if session.role %}
+                    <a class="nav-item nav-link" href="{{ url_for('logout') }}">Logout</a>
+                {% else %}
+                    <a class="nav-item nav-link" href="{{ url_for('login') }}">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

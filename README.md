@@ -1,86 +1,69 @@
- 📚 AI-Powered Student Performance Dashboard for ASTU
 
-A web application that predicts student grades, identifies at-risk students, and recommends study areas using machine learning.
+ Student Performance Dashboard
 
+A web application to monitor and visualize student academic performance. It offers an intuitive interface for administrators, teachers, registrars, and students to manage and view academic data.
 
-🚀 Getting Started
+💻 Requirements
 
-Follow these steps to set up the project on your local machine and start contributing!
+- Python 3.8+ – The app is built in Python; install the latest version.
+- Flask – A lightweight web framework for building the application.
+- Flask-Logi – Manages user authentication.
+- Flask-SQLAlchemy – Handles database interactions (ORM).
+- Werkzeug – Utility library that Flask depends on.
+- Database – A SQL database (e.g., SQLite, PostgreSQL) for storing data; configured via SQLAlchemy.
+- Other dependencies as listed in `requirements.txt`.
 
- 1. Clone the Repository
-```bash
-git clone https://github.com/Abdataa/student-performance-dashboard.git
-cd student-performance-dashboard
-```
+ Getting Started
 
+Follow these steps to set up the project locally:
 
-
- 2. Set Up a Virtual Environment
-Create and activate a virtual environment:
-
--Windows:
-  ```bash
-  python -m venv venv
-  venv\Scripts\activate
-  ```
-
- 3. Install Required Packages
-Install all dependencies using:
-```bash
-pip install -r requirements.txt
-```
- 4. Run the Application
-Start the app locally:
-
-
-    ```bash
-    python app.py
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/Abdataa/student-performance-dashboard.git
+   cd student-performance-dashboard
    ```
+2. Create and activate a virtual environment:  
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+   ```
+3. Install dependencies: 
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Run the application:  
+   ```bash
+   python app.py 
+   ```  
+   The app will start on `http://localhost:5000` by default.
 
-🛠 Contribution Workflow
+🛡️ User Roles
 
-Step 1: Create Your Branch
-Always create a new branch based on your task:
-```bash
-git checkout -b feature/your-task-name
-```
-Example:
-```bash
-git checkout -b feature/add-login-page
-```
-Step 2: Make Changes Locally
-Edit, test, and improve the code.
+- Admin: Full access to the system. Can manage users, courses, and all settings.
+- Registrar: Manages student enrollment and maintains official student records.
+- Teacher: Manages classes and grades. Can enter grades and view student performance for their courses.
+- Student: Views personal academic records and performance dashboards.
 
+Contribution Workflow
 
-Step 3: Commit and Push
-After making changes:
-```bash
-git add .
-git commit -m "Meaningful commit message"
-git push origin feature/your-task-name
-```
+To contribute code or improvements:
 
- Step 4: Open a Pull Request
-- Go to the GitHub repo.
-- Click "Compare & pull request".
-- Write a short description of what you changed.
-- Submit the pull request (PR).
+1. Create a branch: Checkout from `main` and create a new branch for your feature or fix.  
+2. Develop your changes: Implement your feature or bug fix. Follow the project's coding conventions and write clear, concise commit messages.
+3. Push to your branch:  
+   ```bash
+   git push -u origin your-branch-name
+   ```
+4. Open a Pull Request: From your branch to `main`. Include a descriptive title and details of your changes. Reference any relevant issues.
+5. Review and merge: Address feedback from code reviews. Once approved, the branch can be merged into `main`.
 
-The project lead will review and merge your PR!
+ Important Guidelines
+
+- Adhere to the code style: Follow PEP8 and keep the code clean and readable.
+- Test your code: Write tests for new features or bug fixes whenever possible to maintain quality.
+- Keep commits focused: Make atomic commits with clear messages. Rebase or squash minor commits before merging.
+- Update documentation: If you add or modify features, update the documentation and comments accordingly.
+- No direct pushes to `main`: Use branches and pull requests for all changes.
+- Link issues: Reference any related issue IDs in your commit messages or PR descriptions for context.
 
 
-
-⚡ Important Guidelines
-- Always pull the latest changes before starting a new task:
-  ```bash
-  git pull origin main
-  ```
-- Use clear commit messages (e.g., `Fix login bug`, `Add student registration form`).
-- Test your code before pushing.
-- Ask if you’re unsure – we are a team!
-
-
- 📄 License
-This project is for educational purposes under the Integrated Engineering Team Project (IETP) course at ASTU.
-
-🔥 Let's Build Something Great Together!

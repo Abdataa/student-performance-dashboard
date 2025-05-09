@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Bulk Operations</h2>
+    
+    <div class="card">
+        <div class="card-header">CSV Upload</div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Select File Type:</label>
+                    <select class="form-control" name="file_type">
+                        <option value="users">Users</option>
+                        <option value="courses">Courses</option>
+                        <option value="enrollments">Enrollments</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <input type="file" class="form-control-file" name="csv_file" accept=".csv" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">
+                    Upload and Process
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5>CSV Format Examples:</h5>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">Users Format</div>
+                    <div class="card-body">
+                        <code>
+                            username,email,role,department,section<br>
+                            jdoe,jdoe@uni.edu,student,Computer Science,A
+                        </code>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">Courses Format</div>
+                    <div class="card-body">
+                        <code>
+                            name,department,section<br>
+                            Database Systems,Computer Science,A
+                        </code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

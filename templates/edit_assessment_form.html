@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Edit Assessment Form</h2>
+<form method="POST">
+    <div class="form-group">
+        <label>Course</label>
+        <input type="text" name="course" class="form-control" value="{{ form.course }}" required>
+    </div>
+    <div class="form-group">
+        <label>Department</label>
+        <input type="text" name="department" class="form-control" value="{{ form.department }}" required>
+    </div>
+    <div class="form-group">
+        <label>Section</label>
+        <input type="text" name="section" class="form-control" value="{{ form.section }}" required>
+    </div>
+    <!-- Inside templates/edit_assessment_form.html -->
+<div class="form-group">
+    <label>Quiz Weight (%)</label>
+    <input type="number" name="quiz_weight" class="form-control" 
+           value="{{ form.quiz_weight }}" step="0.01" required>
+</div>
+<div class="form-group">
+    <label>Test 1 Weight (%)</label>
+    <input type="number" name="test1_weight" class="form-control" 
+           value="{{ form.test1_weight }}" step="0.01" required>
+</div>
+<div class="form-group">
+    <label>Test 2 Weight (%)</label>
+    <input type="number" name="test2_weight" class="form-control" 
+           value="{{ form.test2_weight }}" step="0.01" required>
+</div>
+<div class="form-group">
+    <label>Midterm Weight (%)</label>
+    <input type="number" name="mid_weight" class="form-control" 
+           value="{{ form.mid_weight }}" step="0.01" required>
+</div>
+<div class="form-group">
+    <label>Project Weight (%)</label>
+    <input type="number" name="project_weight" class="form-control" 
+           value="{{ form.project_weight }}" step="0.01" required>
+</div>
+<div class="form-group">
+    <label>Assignment Weight (%)</label>
+    <input type="number" name="assign_weight" class="form-control" 
+           value="{{ form.assign_weight }}" step="0.01" required>
+</div>
+<div class="form-group">
+    <label>Final Exam Weight (%)</label>
+    <input type="number" name="final_weight" class="form-control" 
+           value="{{ form.final_weight }}" step="0.01" required>
+</div>
+<!-- Add this script to edit_assessment_form.html -->
+<script>
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const weights = [
+            'quiz_weight', 'test1_weight', 'test2_weight', 
+            'mid_weight', 'project_weight', 'assign_weight', 'final_weight'
+        ];
+        let total = 0;
+        weights.forEach(field => {
+            total += parseFloat(document.getElementsByName(field)[0].value) || 0;
+        });
+        if (total !== 100) {
+            e.preventDefault();
+            alert('Total weights must sum to 100%!');
+        }
+    });
+    </script>
+  
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>
+{% endblock %}

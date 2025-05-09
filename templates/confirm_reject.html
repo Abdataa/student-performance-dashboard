@@ -1,0 +1,15 @@
+<!-- templates/confirm_reject.html -->
+{% extends "base.html" %}
+{% block title %}Confirm Rejection{% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Confirm Rejection</h5>
+        <p>Are you sure you want to reject {{ user.username }}'s registration?</p>
+        <form method="POST">
+            <button type="submit" class="btn btn-danger">Confirm Reject</button>
+            <a href="{{ url_for('registrations') }}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

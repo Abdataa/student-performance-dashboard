@@ -1,0 +1,27 @@
+<!-- templates/audit_logs.html -->
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+{% block content %}
+<h2>System Audit Logs</h2>
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in pagination.items %}
+        <tr>
+            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ log.user.username if log.user else 'System' }}</td>
+            <td>{{ log.action }}</td>
+            <td>{{ log.details }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% include '_pagination.html' %}
+{% endblock %}

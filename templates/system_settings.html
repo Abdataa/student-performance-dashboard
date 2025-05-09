@@ -1,0 +1,118 @@
+<!-- templates/system_settings.html -->
+{% extends "base.html" %}
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>System Configuration</h2>
+    
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link active" data-toggle="tab" href="#general">General</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#academic">Academic</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#notifications">Notifications</a>
+        </li>
+    </ul>
+
+    <form method="POST">
+        <div class="tab-content">
+            <!-- General Settings Tab -->
+            <div class="tab-pane active" id="general">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Site Name</label>
+                            <input type="text" name="site_name" 
+                                   class="form-control" 
+                                   value="{{ config.site_name }}">
+                        </div>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   name="allow_registrations" 
+                                   id="allow_registrations" 
+                                   {{ 'checked' if config.allow_registrations }}>
+                            <label class="form-check-label" for="allow_registrations">
+                                Allow New Registrations
+                            </label>
+                        </div>
+
+                        <div class="form-group mt-3">
+                            <label>Default User Role</label>
+                            <select name="default_role" class="form-control">
+                                {% for role in ['student', 'teacher', 'registrar'] %}
+                                <option value="{{ role }}" 
+                                    {{ 'selected' if config.default_role == role }}>
+                                    {{ role|capitalize }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Settings Tab -->
+            <div class="tab-pane" id="academic">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Grading Scale</h5>
+                        <div class="row">
+                            {% for grade in ['A', 'B', 'C', 'D'] %}
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Grade {{ grade }} Minimum</label>
+                                    <input type="number" name="grade_{{ grade.lower() }}" 
+                                           class="form-control" 
+                                           value="{{ config.grade_scale[grade] }}">
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="form-group">
+                            <label>Maximum Courses per Student</label>
+                            <input type="number" name="max_courses" 
+                                   class="form-control" 
+                                   value="{{ config.max_courses }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Tab -->
+            <div class="tab-pane" id="notifications">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>System Email Address</label>
+                            <input type="email" name="system_email" 
+                                   class="form-control" 
+                                   value="{{ config.system_email }}">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Email Notifications</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="enable_email_notifications" 
+                                       id="enable_email_notifications" 
+                                       {{ 'checked' if config.enable_email_notifications }}>
+                                <label class="form-check-label" for="enable_email_notifications">
+                                    Enable Email Notifications
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+    </form>
+</div>
+{% endblock %}

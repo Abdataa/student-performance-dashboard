@@ -1,28 +1,28 @@
 <!-- templates/grade_upload_results.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Grade Upload Results</title>
-</head>
-<body>
-  <h2>Grade Predictions</h2>
-  <table border="1">
-    <tr>
-      <th>Username</th>
-      <th>Predicted Grade (G3)</th>
-      <th>Risk Status</th>
-      <th>Recommendation</th>
-    </tr>
-    {% for row in results %}
-    <tr>
-      <td>{{ row.username }}</td>
-      <td>{{ row.g3 }}</td>
-      <td>{{ row.risk }}</td>
-      <td>{{ row.recommendation }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  <p><a href="{{ url_for('dashboard_teacher') }}">Back to Dashboard</a></p>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Grade Upload Results{% endblock %}
+{% block content %}
+<h2>Grade Processing Results</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Student</th>
+            <th>Predicted G3</th>
+            <th>Risk Status</th>
+            <th>Recommendations</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for result in results %}
+        <tr>
+            <td>{{ result.username }}</td>
+            <td>{{ result.g3 }}</td>
+            <td class="text-{{ 'danger' if result.risk == 'At Risk' else 'success' }}">
+                {{ result.risk }}
+            </td>
+            <td>{{ result.recommendation }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

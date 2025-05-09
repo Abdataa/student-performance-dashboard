@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>My Enrolled Courses</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Course</th>
+                <th>Semester</th>
+                <th>Department</th>
+                <th>Instructor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for enroll in enrollments %}
+            <tr>
+                <td>{{ enroll.course.name }}</td>
+                <td>{{ enroll.semester.name }}</td>
+                <td>{{ enroll.course.department }}</td>
+                <td>{{ enroll.course.instructor or 'TBA' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

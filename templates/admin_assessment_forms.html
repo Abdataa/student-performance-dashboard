@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Assessment Forms</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Course</th>
+            <th>Department</th>
+            <th>Section</th>
+            <th>Teacher</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for form in forms %}
+        <tr>
+            <td>{{ form.course }}</td>
+            <td>{{ form.department }}</td>
+            <td>{{ form.section }}</td>
+            <td>{{ form.teacher.username }}</td>
+            <td>
+                <a href="{{ url_for('edit_assessment_form', form_id=form.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                <form method="POST" action="{{ url_for('delete_assessment_form', form_id=form.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this form?')">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

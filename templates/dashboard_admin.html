@@ -1,42 +1,209 @@
 <!-- templates/dashboard_admin.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-  <h1>Welcome, {{ name }} (Admin)</h1>
-  <nav>
-    <ul>
-      <li><a href="/dashboard/admin">Dashboard Home</a></li>
-      <li><a href="/admin-stats">System Statistics</a></li>
-      <li><a href="/user-management">Manage Users</a></li>
-      <li><a href="/registrations">Approve Registrations</a></li>
-      <li><a href="/teacher-uploads">View Teacher Uploads</a></li>
-      <li><a href="/attendance-summary">Attendance Summary</a></li>
-      <li><a href="/grade-distribution">Grade Distribution</a></li>
-      <li><a href="/notification-center">Notification Center</a></li>
-      <li><a href="/course-management">Manage Courses</a></li>
-      <li><a href="/settings">System Settings</a></li>
-      <li><a href="/logout">Logout</a></li>
-    </ul>
-  </nav>
-  <main>
-    <section>
-      <h2>System Overview</h2>
-      <p>Monitor overall system usage, user registrations, and recent activity.</p>
-    </section>
-    <section>
-      <h2>Quick Actions</h2>
-      <ul>
-        <li><a href="/user-management">Add/Remove Users</a></li>
-        <li><a href="/course-management">Manage Courses</a></li>
-        <li><a href="{{ url_for('add_registrar') }}">Add Registrar</a></li>
-        <li><a href="/settings">System Settings</a></li>
-      </ul>
-    </section>
-  </main>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Admin Dashboard</h2>
+    
+    <!-- System Overview -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    System Overview
+                    <a href="{{ url_for('admin_stats') }}" class="btn btn-sm btn-info float-right">
+                        Detailed Statistics
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h5>Total Users</h5>
+                                <p class="display-4">{{ stats.total_users }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h5>Active Students</h5>
+                                <p class="display-4">{{ stats.active_students }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h5>Pending Registrations</h5>
+                                <p class="display-4">{{ stats.pending_registrations }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h5>At-Risk Students</h5>
+                                <p class="display-4">{{ stats.at_risk_students }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">User Management</div>
+                <div class="card-body">
+                    <a href="{{ url_for('user_management') }}" class="btn btn-primary btn-block mb-2">
+                        Manage Users
+                    </a>
+                    <a href="{{ url_for('admin_add_user') }}" class="btn btn-success btn-block mb-2">
+                        Add New User
+                    </a>
+                    <a href="{{ url_for('add_registrar') }}" class="btn btn-warning btn-block">
+                        Add Registrar
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">Academic Management</div>
+                <div class="card-body">
+                    <a href="{{ url_for('manage_courses') }}" class="btn btn-info btn-block mb-2">
+                        Manage Courses
+                    </a>
+                    <a href="{{ url_for('semester_registrations') }}" class="btn btn-secondary btn-block mb-2">
+                        Approve Registrations
+                    </a>
+                    <a href="{{ url_for('admin_assessment_forms') }}" class="btn btn-dark btn-block">
+                        Assessment Forms
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">System Management</div>
+                <div class="card-body">
+                    <a href="{{ url_for('audit_logs') }}" class="btn btn-primary btn-block mb-2">
+                        Audit Logs
+                    </a>
+                    <a href="{{ url_for('system_settings') }}" class="btn btn-success btn-block mb-2">
+                        System Settings
+                    </a>
+                    <a href="{{ url_for('system_backup') }}" class="btn btn-warning btn-block">
+                        Backup System
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Features -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Risk Analysis</div>
+                <div class="card-body">
+                    <a href="{{ url_for('risk_students') }}" class="btn btn-danger btn-block">
+                        Identify At-Risk Students
+                    </a>
+                    <div class="mt-3">
+                        <h5>Recent Risk Flags</h5>
+                        <ul class="list-group">
+                            {% for student in at_risk_students %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ student.username }}
+                                <span class="badge badge-danger">High Risk</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Academic Analytics</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('grade_distribution') }}" class="btn btn-info btn-block">
+                                Grade Distribution
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{{ url_for('attendance_summary') }}" class="btn btn-success btn-block">
+                                Attendance Summary
+                            </a>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <h5>Performance Trends</h5>
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">Recent System Activities</div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_activities %}
+                            <tr>
+                                <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ log.user.username }}</td>
+                                <td>{{ log.action }}</td>
+                                <td>{{ log.details|truncate(50) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js for visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Initialize performance chart
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ grade_labels|tojson }},
+            datasets: [{
+                label: 'Average Grades',
+                data: {{ grade_data|tojson }},
+                borderColor: '#4e73df',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' }
+            }
+        }
+    });
+</script>
+{% endblock %}

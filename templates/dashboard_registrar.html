@@ -1,87 +1,109 @@
 <!-- templates/dashboard_registrar.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Registrar Dashboard</title>
-  <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-  <h1>Welcome, {{ name }} (Registrar)</h1>
-  <nav>
-    <ul>
-      <li><a href="/dashboard/registrar">Dashboard Home</a></li>
-      <li><a href="/registrations">Pending Registrations</a></li>
-      <li><a href="{{ url_for('add_user') }}">Add Student/Teacher</a></li>
-      <!-- In templates/dashboard_registrar.html -->
-<table class="table table-striped">
-  <thead>
-      <tr>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Department</th>
-          <th>Section</th>
-          <th>Status</th>
-          <th>Actions</th>  <!-- New Actions column -->
-      </tr>
-  </thead>
-  <tbody>
-      {% for user in users %}
-      <tr>
-          <td>{{ user.username }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.role }}</td>
-          <td>{{ user.department }}</td>
-          <td>{{ user.section }}</td>
-          <td>{{ 'Active' if user.is_active else 'Inactive' }}</td>
-          <td>
-              <!-- Existing Toggle Form -->
-              <form method="POST" action="{{ url_for('toggle_user', user_id=user.id) }}" style="display: inline;">
-                  <button type="submit" class="btn btn-sm btn-secondary">
-                      {{ 'Deactivate' if user.is_active else 'Activate' }}
-                  </button>
+{% extends "base.html" %}
+
+{% block title %}Registrar Dashboard{% endblock %}
+
+{% block content %}
+<div class="alert alert-info mb-4">
+  <strong>Current Selection:</strong>
+  Department: {{ selected_dept or 'Not selected' }} |
+  Section: {{ selected_section or 'Not selected' }}
+</div>
+
+<div class="container">
+  <h2>Registrar Dashboard</h2>
+
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Student Management</h5>
+          <a href="{{ url_for('manage_students') }}" class="btn btn-primary btn-block">
+            Manage Students by Section
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Semester Control</h5>
+          <a href="{{ url_for('add_semester') }}" class="btn btn-warning btn-block">
+            Add New Semester
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">User Management</h5>
+          <a href="{{ url_for('add_user') }}" class="btn btn-success btn-block">
+            Add New User
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Quick Actions</h5>
+          <div class="list-group">
+            <a href="{{ url_for('manage_students') }}" class="list-group-item">Student Enrollment</a>
+            <a href="{{ url_for('add_semester') }}" class="list-group-item">Create Semester</a>
+            <a href="{{ url_for('registrar_user_management') }}" class="list-group-item">User Management</a>
+            <a href="{{ url_for('manage_departments_sections') }}" class="list-group-item">Departments/Sections</a>
+            <a href="{{ url_for('registration_status') }}" class="list-group-item">Registration Status</a>
+            <a href="{{ url_for('bulk_actions') }}" class="list-group-item">Bulk Operations</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-8">
+      <!-- Display stats and recent activities -->
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h4>Current Semesters</h4>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Semester</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sem in semesters %}
+          <tr>
+            <td>{{ sem.name }}</td>
+            <td>
+              <span class="badge badge-{{ 'success' if sem.is_open else 'danger' }}">
+                {{ 'Open' if sem.is_open else 'Closed' }}
+              </span>
+            </td>
+            <td>
+              <form action="{{ url_for('toggle_semester', sem_id=sem.id) }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-{{ 'danger' if sem.is_open else 'success' }}">
+                  {{ 'Close' if sem.is_open else 'Open' }}
+                </button>
               </form>
-              
-              <!-- New Edit Button -->
-              <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-primary">
-                  Edit
-              </a>
-          </td>
-      </tr>
-      {% endfor %}
-  </tbody>
-</table>
-
-
-      <li><a href="/logout">Logout</a></li>
-    </ul>
-  </nav>
-  <main>
-    <p>Approve or reject new student registrations.</p>
-  </main>
-  <h2>All Users</h2>
-<table border="1">
-  <tr>
-    <th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th>
-  </tr>
-  {% for u in users %}
-  <tr>
-    <td>{{ u.id }}</td>
-    <td>{{ u.username }}</td>
-    <td>{{ u.email }}</td>
-    <td>{{ u.role }}</td>
-    <td>{{ 'Active' if u.is_active else 'Inactive' }}</td>
-    <td>
-      <form method="POST" action="{{ url_for('toggle_user', user_id=u.id) }}">
-        <button type="submit">
-          {{ 'Deactivate' if u.is_active else 'Activate' }}
-        </button>
-      </form>
-    </td>
-  </tr>
-  {% endfor %}
-</table>
-
-</body>
-</html>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

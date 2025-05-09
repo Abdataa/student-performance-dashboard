@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Semester Registration</h2>
+    
+    <!-- Current Registrations -->
+    {% if current_registrations %}
+    <div class="card mb-4">
+        <div class="card-header">Current Registrations</div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Semester</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in current_registrations %}
+                    <tr>
+                        <td>{{ reg.semester.name }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if reg.status == 'Approved' %}bg-success
+                                {% elif reg.status == 'Pending' %}bg-warning
+                                {% else %}bg-secondary{% endif %}">
+                                {{ reg.status }}
+                            </span>
+                        </td>
+                        <td>{{ reg.timestamp.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Registration Form -->
+    <div class="card">
+        <div class="card-header">Register for New Semester</div>
+        <div class="card-body">
+            {% if semesters %}
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="form-group mb-3">
+                    <label for="semester_id">Select Semester</label>
+                    <select id="semester_id" name="semester_id" class="form-control" required>
+                        {% for sem in semesters %}
+                        <option value="{{ sem.id }}">{{ sem.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="alert alert-info">
+                    Registrations require admin approval. You'll be notified once reviewed.
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Submit Registration</button>
+            </form>
+            {% else %}
+            <div class="alert alert-warning">
+                No semesters are currently open for registration
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

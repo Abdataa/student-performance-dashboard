@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Departments & Sections</h2>
+    
+    <div class="row">
+        <!-- Add Department Form -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">Add Department</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <input type="text" class="form-control" name="department" 
+                                   placeholder="New Department Name" required>
+                        </div>
+                        <button type="submit" name="action" value="add_department" 
+                                class="btn btn-primary">
+                            Add Department
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Section Form -->
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">Add Section</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="form-group">
+                            <input type="text" class="form-control" name="section" 
+                                   placeholder="New Section Name" required>
+                        </div>
+                        <button type="submit" name="action" value="add_section" 
+                                class="btn btn-primary">
+                            Add Section
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Structure -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Existing Departments</div>
+                <ul class="list-group list-group-flush">
+                    {% for dept in departments %}
+                    <li class="list-group-item">{{ dept[0] }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Existing Sections</div>
+                <ul class="list-group list-group-flush">
+                    {% for section in sections %}
+                    <li class="list-group-item">{{ section[0] }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

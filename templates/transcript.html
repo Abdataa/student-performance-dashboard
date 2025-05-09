@@ -1,0 +1,43 @@
+<!-- templates/transcript.html -->
+{% extends "base.html" %}
+{% block title %}Academic Transcript{% endblock %}
+{% block content %}
+<h2>Academic Transcript</h2>
+<div class="card">
+    <div class="card-header">
+        Semester: {{ rows[0][0].semester.name if rows else 'No records' }}
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Score</th>
+                    <th>Grade</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment, result in rows %}
+                <tr>
+                    <td>{{ enrollment.course.name }}</td>
+                    <td>
+                        {% if result %}
+                            {{ result.score }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if result %}
+                            {{ result.score|grade_letter }}
+                        {% else %}
+                            Pending
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

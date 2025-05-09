@@ -1,0 +1,25 @@
+
+<!-- templates/announcement_list.html -->
+{% extends "base.html" %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+<h2>Latest Announcements</h2>
+{% for announcement in announcements %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">{{ announcement.title }}</h5>
+        <p class="card-text">{{ announcement.content }}</p>
+        <small class="text-muted">
+            Posted by {{ announcement.author.username }} on 
+            {{ announcement.timestamp.strftime('%Y-%m-%d') }}
+        </small>
+        {% if session.role == 'admin' %}
+        <form action="{{ url_for('delete_announcement', id=announcement.id) }}" 
+              method="POST" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-danger float-right">Delete</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
