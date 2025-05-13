@@ -1,21 +1,58 @@
-<!-- templates/add_semester.html -->
+<form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input name="name" placeholder="Semester Name" required>
 
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <h2>Create New Semester</h2>
-    <div class="card">
-        <div class="card-body">
-            <form method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="form-group">
-                    <label>Semester Name</label>
-                    <input type="text" name="name" class="form-control" 
-                           placeholder="e.g., 2024 Fall Semester" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Create Semester</button>
-            </form>
+    <!-- Course Count Input -->
+    <label for="course_count">Number of Courses</label>
+    <input type="number" id="course_count" name="course_count" min="1" 
+           onchange="updateCourseFields()" placeholder="Number of Courses" required>
+
+    <!-- Course Fields Container -->
+    <div id="courses-container">
+        <!-- Initial course (course_1) -->
+        <div class="course-field">
+            <h4>Course 1</h4>
+            <input name="course_1_name" placeholder="Course Name" required>
+            <input name="course_1_dept" placeholder="Department" required>
+            <input name="course_1_section" placeholder="Section" required>
+            <select name="course_1_instructor" required>
+                {% for teacher in teachers %}
+                <option value="{{ teacher.id }}">{{ teacher.username }}</option>
+                {% endfor %}
+            </select>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <button type="submit">Create Semester</button>
+</form>
+
+<!-- Add JavaScript to handle dynamic fields -->
+<script>
+function updateCourseFields() {
+    const container = document.getElementById('courses-container');
+    const courseCount = parseInt(document.getElementById('course_count').value);
+    
+    // Clear existing fields beyond the first course
+    while (container.children.length > courseCount) {
+        container.lastChild.remove();
+    }
+
+    // Add new fields for additional courses
+    for (let i = container.children.length + 1; i <= courseCount; i++) {
+        const courseHtml = `
+            <div class="course-field">
+                <h4>Course ${i}</h4>
+                <input name="course_${i}_name" placeholder="Course Name" required>
+                <input name="course_${i}_dept" placeholder="Department" required>
+                <input name="course_${i}_section" placeholder="Section" required>
+                <select name="course_${i}_instructor" required>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}">{{ teacher.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', courseHtml);
+    }
+}
+</script>

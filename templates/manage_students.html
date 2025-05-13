@@ -1,22 +1,16 @@
 {% extends "base.html" %}
-<!-- Add this at the top of the content block -->
-<div class="alert alert-info">
-    <strong>Current Selection:</strong> 
-    Department: {{ selected_dept or 'Not selected' }} | 
-    Section: {{ selected_section or 'Not selected' }}
-</div>
 {% block title %}Manage Students{% endblock %}
-
 {% block content %}
 <div class="container">
     <h2>Manage Students by Department/Section</h2>
     
+    <!-- Department/Section Filter Form -->
     <form method="POST" class="mb-4">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="row">
+        <div class="row g-3">
             <div class="col-md-5">
                 <label for="department-select" class="form-label">Department</label>
-                <select id="department-select" name="department" class="form-control" required>
+                <select id="department-select" name="department" class="form-select" required>
                     <option value="">Select Department</option>
                     {% for dept in departments %}
                     <option value="{{ dept.department }}" {% if dept.department == selected_dept %}selected{% endif %}>
@@ -26,8 +20,8 @@
                 </select>
             </div>
             <div class="col-md-5">
-                <label for="section-select" class="form-label">Section</label>
-                <select id="section-select" name="section" class="form-control" required>
+                <label class="form-label">Section</label>
+                <select name="section" class="form-select" required>
                     <option value="">Select Section</option>
                     {% for sec in sections %}
                     <option value="{{ sec.section }}" {% if sec.section == selected_section %}selected{% endif %}>
@@ -36,46 +30,65 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary btn-block">Filter</button>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-primary">Filter</button>
             </div>
         </div>
     </form>
 
-    {% if students %}
+    {% if selected_dept and selected_section %}
+    <div class="alert alert-info">
+        <strong>Current Selection:</strong> 
+        Department: {{ selected_dept }} | Section: {{ selected_section }}
+    </div>
+
     <div class="row">
-        <div class="col-md-8">
-            <h4>Students in {{ selected_dept }} - Section {{ selected_section }}</h4>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Department</th>
-                        <th>Section</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in students %}
-                    <tr>
-                        <td>{{ student.username }}</td>
-                        <td>{{ student.email }}</td>
-                        <td>{{ student.department }}</td>
-                        <td>{{ student.section }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="col-lg-8">
+            <!-- Student List -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">Students in {{ selected_dept }} - Section {{ selected_section }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Department</th>
+                                    <th>Section</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>{{ student.username }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>{{ student.department }}</td>
+                                    <td>{{ student.section }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="col-md-4">
+        <!-- Instructor Assignment Section -->
+        <div class="col-lg-4">
             <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Course Instructor Assignment</h4>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Assign Course Instructor</h5>
                     <form method="POST" action="{{ url_for('assign_instructor') }}">
-                        <div class="form-group">
-                            <label>Select Course</label>
-                            <select name="course_id" class="form-control" required title="Select Course">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Select Course</label>
+                            <select name="course_id" class="form-select" required>
                                 {% for course in courses %}
                                 <option value="{{ course.id }}">
                                     {{ course.name }} (Current: {{ course.instructor or 'None' }})
@@ -83,19 +96,21 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        
-                        <div class="form-group">
-                            <label>Select Teacher</label>
-                            <select name="instructor" class="form-control" required title="Select Teacher">
+
+                        <div class="mb-3">
+                            <label class="form-label">Select Instructor</label>
+                            <select name="instructor" class="form-select" required>
                                 {% for teacher in teachers %}
                                 <option value="{{ teacher.username }}">{{ teacher.username }}</option>
                                 {% endfor %}
                             </select>
                         </div>
-                        
-                        <button type="submit" class="btn btn-success btn-block">
-                            Assign Instructor
-                        </button>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-person-check"></i> Assign Instructor
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>

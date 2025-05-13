@@ -1,26 +1,77 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container mt-4">
-    <h2>My Enrolled Courses</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Course</th>
-                <th>Semester</th>
-                <th>Department</th>
-                <th>Instructor</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for enroll in enrollments %}
-            <tr>
-                <td>{{ enroll.course.name }}</td>
-                <td>{{ enroll.semester.name }}</td>
-                <td>{{ enroll.course.department }}</td>
-                <td>{{ enroll.course.instructor or 'TBA' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="container">
+    <h2>My Courses</h2>
+    
+    <!-- Semester Selection -->
+    <div class="mb-4">
+        <form class="form-inline">
+            <label for="semester_id_select" class="sr-only">Select Semester</label>
+            <select id="semester_id_select" name="semester_id" class="form-control" onchange="this.form.submit()">
+                {% for reg in registrations %}
+                <option value="{{ reg.semester_id }}" 
+                    {% if reg.semester_id == selected_sem_id %}selected{% endif %}>
+                    {{ reg.semester.name }} 
+                    {% if reg.semester.is_open %}(Current){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    {% if current_semester and not selected_sem_id %}
+    <div class="alert alert-info">
+        Currently viewing courses for active semester: {{ current_semester.name }}
+    </div>
+    {% endif %}
+
+    <!-- Courses List -->
+    <div class="row">
+        {% for course_info in courses_data %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5>{{ course_info.course.name }}</h5>
+                    <p class="mb-0">
+                        {{ course_info.schedule }} | {{ course_info.room }}
+                    </p>
+                </div>
+                
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6>Instructor</h6>
+                        <p class="mb-0">
+                            {{ course_info.instructor.username }}
+                            <br>
+                            <small>{{ course_info.instructor.email }}</small>
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6>Recent Announcements</h6>
+                        {% if course_info.announcements %}
+                        <div class="list-group">
+                            {% for ann in course_info.announcements %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ ann.title }}</strong>
+                                    <small>{{ ann.timestamp|time_ago }}</small>
+                                </div>
+                                <p class="mb-0">{{ ann.content|truncate(100) }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">No announcements yet</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col">
+            <div class="alert alert-warning">
+                No courses found for selected semester
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
-{% endblock %}

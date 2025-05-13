@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pending Semester Registrations</title>
 </head>
 <body>
@@ -18,9 +19,12 @@
         <td>{{ reg.timestamp.strftime('%Y-%m-%d') }}</td>
         <td>
           <form method="POST" action="{{ url_for('approve_semester', reg_id=reg.id) }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
             <button type="submit">Approve</button>
           </form>
           <form method="POST" action="{{ url_for('reject_semester', reg_id=reg.id) }}" style="display:inline">
+             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit">Reject</button>
           </form>
         </td>

@@ -1,13 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, current_app
+from flask import Flask, render_template, request, redirect, url_for, flash, session, current_app, abort
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 import joblib
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 from ML.study_recommendation import generate_recommendation
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, validate_csrf
 from flask_migrate import Migrate
+from werkzeug.exceptions import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
+
 
 
 
@@ -48,8 +51,9 @@ class Announcement(db.Model):
 
 class User(db.Model):
     __tablename__ = 'users'
-    id            = db.Column(db.Integer,    primary_key=True)
-    username      = db.Column(db.String(80), unique=True, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False) 
+
     email         = db.Column(db.String(120),unique=True, nullable=False)
     password_hash = db.Column(db.String(128),nullable=False)
     role          = db.Column(db.String(20), nullable=False)
@@ -61,11 +65,22 @@ class User(db.Model):
  #------- //     ---------------------   
 class Course(db.Model):
     __tablename__ = 'courses'
-    id           = db.Column(db.Integer, primary_key=True)
-    name         = db.Column(db.String(100), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    semester_id = db.Column(db.Integer, db.ForeignKey('semesters.id'), nullable=False)
+    instructor = db.Column(db.Integer, db.ForeignKey('users.id')) 
+   
+
+
     department   = db.Column(db.String(100), nullable=False)
     section      = db.Column(db.String(50), nullable=False)
-    instructor   = db.Column(db.String(80), nullable=True)  # optional username of teacher
+
+    # Add this relationship
+    instructor_rel = db.relationship('User', backref='courses_teaching')
+    semester = db.relationship('Semester', backref='courses')
+    semester_id = db.Column(db.Integer, db.ForeignKey('semesters.id'), nullable=False)
+    semester = db.relationship('Semester', backref='courses')
+
 
 class Semester(db.Model):           ### NEW
     __tablename__ = 'semesters'
@@ -101,6 +116,8 @@ class Enrollment(db.Model):         ### NEW
 
 #----assesment ------form------
 class AssessmentForm(db.Model):
+    
+  
     __tablename__ = 'assessment_forms'
     id             = db.Column(db.Integer, primary_key=True)
     teacher_id     = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -211,7 +228,7 @@ def create_admin_if_missing():
             print("Default admin created!")
 
 # Call this function during app startup
-create_admin_if_missing()
+#create_admin_if_missing()
 
 def encode_inputs(data):
     data['higher'] = 1 if data.get('higher') == 'yes' else 0
@@ -359,17 +376,13 @@ def email_templates():
         return redirect(url_for('email_templates'))
     return render_template('email_templates.html')
 
+#
+#    ##########
+# 
+#@app.route('/registrar/toggle-user/<int:user_id>', methods=#['POST'])
+#@roles_required('registrar')
+#def toggle_user(user_id):
 
-    ##########
-
-@app.route('/registrar/toggle-user/<int:user_id>', methods=['POST'])
-@roles_required('registrar')
-def toggle_user(user_id):
-    user = User.query.get_or_404(user_id)
-    user.is_active = not user.is_active
-    db.session.commit()
-    flash(f"{user.username} is now {'Active' if user.is_active else 'Inactive'}.", 'info')
-    return redirect(url_for('dashboard_registrar'))
 
 ###---/\------------
 
@@ -382,95 +395,114 @@ def toggle_user(user_id):
 # ---------------------------
 #toggle semester
 
-# ---------------------------
-# Student Registration Flow
-# ---------------------------
-@app.route('/register-semester', methods=['GET','POST'])
-@roles_required('student')
-def register_semester():
-    student_id = session['user_id']
-    open_sems = Semester.query.filter_by(is_open=True).all()
-    
-    if request.method == 'POST':
-        sem_id = request.form.get('semester_id')
-        
-        # Validate semester exists and is open
-        semester = Semester.query.filter_by(id=sem_id, is_open=True).first()
-        if not semester:
-            flash('Invalid semester selection', 'danger')
-            return redirect(url_for('register_semester'))
-        
-        # Existing registration check
-        existing_reg = Registration.query.filter_by(
-            student_id=student_id,
-            semester_id=sem_id
-        ).first()
-        
-        if existing_reg:
-            flash(f'Registration for {semester.name} already exists', 'warning')
-            return redirect(url_for('dashboard_student'))
-        
-        # Create new registration
-        reg = Registration(
-            student_id=student_id,
-            semester_id=sem_id,
-            status='Pending'
-        )
-        db.session.add(reg)
-        db.session.commit()
-        flash('Registration submitted for approval', 'success')
-        return redirect(url_for('dashboard_student'))
-    
-    return render_template('register_semester.html',
-                         semesters=open_sems,
-                         current_registrations=Registration.query.filter_by(student_id=student_id).all())
-    
-
-
- 
-@app.route('/transcript/<int:sem_id>')
-@roles_required('student')
-def transcript(sem_id):
-    student_id = session['user_id']
-    
-    transcript_data = db.session.query(
-        Course.name.label('course_name'),
-        AssessmentResult.score
-    ).select_from(Enrollment)\
-     .join(Course, Enrollment.course_id == Course.id)\
-     .outerjoin(
-        AssessmentResult,
-        (Enrollment.student_id == AssessmentResult.student_id)
-     )\
-     .outerjoin(
-        AssessmentForm,
-        (AssessmentResult.form_id == AssessmentForm.id) &
-        (Course.name == AssessmentForm.course)
-     )\
-     .filter(
-        Enrollment.student_id == student_id,
-        Enrollment.semester_id == sem_id
-     ).all()
-
-    return render_template('transcript_detail.html', 
-                         transcript=transcript_data,
-                         semester=Semester.query.get(sem_id))
   
 
 
 @app.route('/my-courses')
 @roles_required('student')
 def my_courses():
-    enrollments = Enrollment.query.filter_by(student_id=session['user_id'])\
-        .join(Course).join(Semester).all()
-    return render_template('my_courses.html', enrollments=enrollments)                            
+    student_id = session['user_id']
+    current_semester = Semester.query.filter_by(is_open=True).first()
 
+    # Get all approved registrations
+    registrations = Registration.query.filter_by(
+        student_id=student_id,
+        status='Approved'
+    ).join(Semester).order_by(Semester.name.desc()).all()
+
+    # Get selected semester or use current
+    selected_sem_id = request.args.get('semester_id', current_semester.id if current_semester else None)
+    
+    courses_data = []
+    if selected_sem_id:
+        # Get enrollments for selected semester
+        enrollments = Enrollment.query.filter_by(
+            student_id=student_id,
+            semester_id=selected_sem_id
+        ).join(Course).all()
+
+        # Build course details
+        for enroll in enrollments:
+            course = enroll.course
+            instructor = course.instructor_rel
+
+            courses_data.append({
+                'course': course,
+                'instructor': instructor,
+                'schedule': f"{course.days} {course.time}",
+                'room': course.room_number,
+                'announcements': Announcement.query.filter_by(
+                    course_id=course.id
+                ).order_by(Announcement.timestamp.desc()).limit(3).all()
+            })
+
+    return render_template(
+        'my_courses.html',
+        registrations=registrations,
+        current_semester=current_semester,
+        selected_sem_id=selected_sem_id,
+        courses_data=courses_data
+    )
+
+
+#---student see their instructors and attendance---------#
+@app.route('/my-instructors')
+@roles_required('student')
+def my_instructors():
+    student_id = session['user_id']
+    
+    enrollments = Enrollment.query.filter_by(student_id=student_id)\
+        .join(Course, Enrollment.course_id == Course.id)\
+        .options(db.joinedload(Enrollment.course))\
+        .all()
+    
+    instructor_data = []
+    
+    for enroll in enrollments:
+        course = enroll.course
+        if not course or not course.instructor:
+            continue
+            
+        instructor = course.instructor_rel  # Use the relationship
+        
+        instructor_data.append({
+            'course': course,
+            'instructor': instructor,
+            'attendance': Attendance.query.filter_by(
+                student_id=student_id,
+                course_id=course.id
+            ).order_by(Attendance.date.desc()).all(),
+            'assessments': AssessmentForm.query.filter_by(
+                course=course.name,
+                department=course.department,
+                section=course.section
+            ).all()
+        })
+    
+    return render_template('student_instructors.html', instructor_data=instructor_data)
+    
+#-------time ago filter-----#
+@app.template_filter('time_ago')
+def time_ago_filter(dt):
+    now = datetime.now(timezone.utc)
+    diff = now - dt
+    if diff.days > 365:
+        return f"{diff.days // 365} years ago"
+    if diff.days > 30:
+        return f"{diff.days // 30} months ago"
+    if diff.days > 0:
+        return f"{diff.days} days ago"
+    if diff.seconds > 3600:
+        return f"{diff.seconds // 3600} hours ago"
+    if diff.seconds > 60:
+        return f"{diff.seconds // 60} minutes ago"
+    return "Just now"    
 
 # ---------------------------
 # Approve Semester Registrations (Admin)
 # ---------------------------
 @app.route('/registrations/semester')
-@roles_required('admin')
+@roles_required('admin', 'registrar')  # Correct decorator name
 def semester_registrations():
     regs = Registration.query.filter_by(status='Pending').all()
     return render_template('semester_regs.html', regs=regs)
@@ -478,12 +510,29 @@ def semester_registrations():
 
  ##approval route   
 @app.route('/registrations/semester/<int:reg_id>/approve', methods=['POST'])
-@roles_required('admin', 'registrar')  # Correct decorator name
+@roles_required('admin', 'registrar')
 def approve_semester(reg_id):
-    r = Registration.query.get_or_404(reg_id)
-    r.status = 'Approved'
+    registration = Registration.query.get_or_404(reg_id)
+    registration.status = 'Approved'
+    
+    # Get all courses for this semester in student's department/section
+    courses = Course.query.filter_by(
+        semester_id=registration.semester_id,
+        department=registration.student.department,
+        section=registration.student.section
+    ).all()
+
+    # Create enrollments
+    for course in courses:
+        enrollment = Enrollment(
+            student_id=registration.student_id,
+            course_id=course.id,
+            semester_id=registration.semester_id
+        )
+        db.session.add(enrollment)
+
     db.session.commit()
-    flash('Registration approved', 'success')
+    flash('Registration approved and courses enrolled', 'success')
     return redirect(url_for('semester_registrations'))
 
 @app.route('/registrations/semester/<int:reg_id>/reject', methods=['POST'])
@@ -494,6 +543,15 @@ def reject_semester(reg_id):
     db.session.commit()
     flash('Registration rejected', 'info')
     return redirect(url_for('semester_registrations'))
+
+
+def redirect_back(default='/', **kwargs):
+    """
+    Redirect to the previous page or a default URL.
+    """
+    target = request.referrer or default
+    return redirect(target)
+
 
 
 #
@@ -550,25 +608,35 @@ def manage_students():
                          courses=courses,
                           teachers=teachers)  # Add courses to context
 @app.route('/assign-instructor', methods=['POST'])
-@roles_required('registrar')
+@roles_required('registrar','admin')
 def assign_instructor():
-    course_id = request.form.get('course_id')
-    instructor_username = request.form.get('instructor')
-    
-    course = Course.query.get(course_id)
-    instructor = User.query.filter_by(username=instructor_username, role='teacher').first()
-    
-    if course and instructor:
+    try:
+        # CSRF validation is now automatic
+        course_id = request.form['course_id']
+        instructor_username = request.form['instructor']
+
+        # Case-insensitive search
+        course = Course.query.get_or_404(course_id)
+        instructor = User.query.filter(
+            db.func.lower(User.username) == instructor_username.strip().lower(),
+            User.role == 'teacher'
+        ).first_or_404()
+
+        if course.instructor and course.instructor.lower() == instructor.username.lower():
+            flash(f'{instructor.username} already assigned', 'info')
+            return redirect_back()
+
         course.instructor = instructor.username
         db.session.commit()
-        flash(f'{instructor.username} assigned to {course.name}', 'success')
-    else:
-        flash('Assignment failed. Check course and teacher selection', 'danger')
-    
-    return redirect(request.referrer)
+        flash('Assignment successful!', 'success')
 
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error: {str(e)}', 'danger')
+        app.logger.error(f'Assignment error: {str(e)}')
 
-# ---------------------------
+    return redirect_back()
+#---------
 # Enrollment Assignment
 # ---------------------------
 @app.route('/admin/enroll', methods=['GET','POST'])
@@ -647,6 +715,7 @@ def approve(user_id):
                 flash('Invalid request.', 'danger')
     except Exception as e:
         flash(f'An error occurred: {str(e)}', 'danger') 
+
 
 @app.route('/reject/<int:user_id>', methods=['GET', 'POST'])
 @roles_required('admin')
@@ -755,15 +824,137 @@ def toggle_semester(sem_id):
 @roles_required('admin', 'registrar')
 def add_semester():
     if request.method == 'POST':
-        sem = Semester(
-            name=request.form['name'],
-            is_open=False  # New semesters are closed by default
+        try:
+            # Create semester (not committed yet)
+            sem = Semester(
+                name=request.form['name'],
+                is_open=True
+            )
+            db.session.add(sem)
+            
+            # Add courses within the same transaction
+            course_count = int(request.form['course_count'])
+            for i in range(1, course_count + 1):
+                course = Course(
+                    name=request.form[f'course_{i}_name'],
+                    department=request.form[f'course_{i}_dept'],
+                    section=request.form[f'course_{i}_section'],
+                    instructor=int(request.form[f'course_{i}_instructor']),  # Convert to int
+                    semester_id=sem.id
+                )
+                db.session.add(course)
+            
+            # Single commit for both semester and courses
+            db.session.commit()
+            flash('Semester and courses created successfully', 'success')
+            return redirect(url_for('manage_semesters'))
+        
+        except Exception as e:
+            db.session.rollback()  # Rollback on error
+            flash('Error creating semester: ' + str(e), 'error')
+    
+    teachers = User.query.filter_by(role='teacher').all()
+    return render_template('add_semester.html', teachers=teachers)
+# ---------------------------
+# Close Semester
+# ---------------------------
+@app.route('/semesters/close/<int:sem_id>', methods=['POST'])
+@roles_required('admin', 'registrar')
+def close_semester(sem_id):
+    sem = Semester.query.get_or_404(sem_id)
+    sem.is_open = False
+    db.session.commit()
+    flash(f"{sem.name} has been closed", "info")
+    return redirect(url_for('manage_semesters'))
+
+# ---------------------------
+# Updated Student Registration
+# ---------------------------
+@app.route('/register-semester', methods=['GET','POST'])
+@roles_required('student')
+def register_semester():
+    student_id = session['user_id']
+    open_sems = Semester.query.filter_by(is_open=True).all()
+    
+    if request.method == 'POST':
+        sem_id = request.form.get('semester_id')
+        semester = Semester.query.get(sem_id)
+        
+        if not semester or not semester.is_open:
+            flash('Invalid semester selection', 'danger')
+            return redirect(url_for('register_semester'))
+         
+        
+        # Existing check and registration logic remains same
+        # ...
+        # Existing registration check
+        existing_reg = Registration.query.filter_by(
+            student_id=student_id,
+            semester_id=sem_id
+        ).first()
+        
+        if existing_reg:
+            flash(f'Registration for {semester.name} already exists', 'warning')
+            return redirect(url_for('dashboard_student'))
+        
+        # Create new registration
+        reg = Registration(
+            student_id=student_id,
+            semester_id=sem_id,
+            status='Pending'
         )
-        db.session.add(sem)
+        db.session.add(reg)
         db.session.commit()
-        flash('Semester created successfully', 'success')
-        return redirect(url_for('manage_semesters'))
-    return render_template('add_semester.html')
+        flash('Registration submitted for approval', 'success')
+        return redirect(url_for('dashboard_student'))
+    return render_template('register_semester.html',
+                         semesters=open_sems,
+                         current_registrations=Registration.query.filter_by(student_id=student_id).all())
+
+# ---------------------------
+# Transcript View (Includes closed semesters)
+# ---------------------------
+@app.route('/transcript')
+@roles_required('student')
+def transcript():
+    student_id = session['user_id']
+    semesters = Semester.query.join(Registration).filter(
+        Registration.student_id == student_id,
+        Registration.status == 'Approved'
+    ).all()
+    
+    return render_template('transcript.html', semesters=semesters)
+
+# ---------------------------
+# Registrar Access Control
+# ---------------------------
+def prevent_admin_modification(user_id):
+    target_user = User.query.get(user_id)
+    if not target_user:
+        flash('User does not exist', 'danger')
+        return True
+    if target_user.role == 'admin':
+        flash('Admin users cannot be modified', 'danger')
+        return True
+    return False
+
+@app.route('/registrar/toggle-user/<int:user_id>', methods=['POST'])
+@roles_required('registrar')
+def toggle_user(user_id):
+    if prevent_admin_modification(user_id):
+        return redirect_back()
+    # Original toggle logic
+    user = User.query.get_or_404(user_id)
+    user.is_active = not user.is_active
+    db.session.commit()
+    flash(f"{user.username} is now {'Active' if user.is_active else 'Inactive'}.", 'info')
+    return redirect(url_for('dashboard_registrar'))
+
+
+
+
+    # Original delete logic
+
 
 
 
@@ -830,71 +1021,22 @@ def delete_course(course_id):
 def admin_assessment_forms():
     forms = AssessmentForm.query.all()
     return render_template('admin_assessment_forms.html', forms=forms)
-#----admin delete created assessment-form-------
-@app.route('/admin/delete-form/<int:form_id>', methods=['POST'])
-@roles_required('admin')
-def delete_assessment_form(form_id):
-    form = AssessmentForm.query.get(form_id)
-    if form:
-        db.session.delete(form)
-        db.session.commit()
-        flash('Assessment form deleted successfully.', 'success')
-    else:
-        flash('Form not found.', 'danger')
-    return redirect(url_for('admin_assessment_forms'))  
+# #----admin delete created assessment-form-------
+#@app.route('/admin/delete-form/<int:form_id>', methods=['POST'])
+#@roles_required('admin')
+#def delete_assessment_form(form_id):
+#    form = AssessmentForm.query.get(form_id)
+#    if form:
+#        db.session.delete(form)
+#        db.session.commit()
+#        flash('Assessment form deleted successfully.', 'success')
+#    else:
+#        flash('Form not found.', 'danger')
+#    return redirect(url_for('admin_assessment_forms'))  
 
 
     #---- admin edit assesmnt form----------
-@app.route('/admin/edit-form/<int:form_id>', methods=['GET', 'POST'])
-@roles_required('admin')
-def edit_assessment_form(form_id):
-    form = AssessmentForm.query.get(form_id)
-    if not form:
-        flash('Form not found.', 'danger')
-        return redirect(url_for('admin_assessment_forms'))
-    
-    if request.method == 'POST':
-        try:
-            # Check if all fields are present
-            required_fields = [
-                'course', 'department', 'section', 
-                'quiz_weight', 'test1_weight', 'test2_weight',
-                'mid_weight', 'project_weight', 'assign_weight', 'final_weight'
-            ]
-            for field in required_fields:
-                if field not in request.form:
-                    flash(f'Missing field: {field}', 'danger')
-                    return redirect(url_for('edit_assessment_form', form_id=form_id))
-            
-            # Update weights
-            form.course = request.form['course']
-            form.department = request.form['department']
-            form.section = request.form['section']
-            form.quiz_weight = float(request.form['quiz_weight'])
-            form.test1_weight = float(request.form['test1_weight'])
-            form.test2_weight = float(request.form['test2_weight'])
-            form.mid_weight = float(request.form['mid_weight'])
-            form.project_weight = float(request.form['project_weight'])
-            form.assign_weight = float(request.form['assign_weight'])
-            form.final_weight = float(request.form['final_weight'])
-            
-            # Validate total weight = 100%
-            total_weight = sum([
-                form.quiz_weight, form.test1_weight, form.test2_weight,
-                form.mid_weight, form.project_weight, form.assign_weight, 
-                form.final_weight
-            ])
-            if total_weight != 100:
-                flash('Total weights must sum to 100%.', 'danger')
-                return redirect(url_for('edit_assessment_form', form_id=form_id))
-            
-            db.session.commit()
-            flash('Form updated successfully.', 'success')
-            return redirect(url_for('admin_assessment_forms'))
-        except Exception as e:
-            flash(f'Error updating form: {e}', 'danger')
-    
-    return render_template('edit_assessment_form.html', form=form) 
+
 
 
 #--------------------------------------------------
@@ -1042,10 +1184,27 @@ def add_user():
 @app.route('/registrar/edit-user/<int:user_id>', methods=['GET','POST'])
 @roles_required('registrar')
 def edit_user(user_id):
+    if prevent_admin_modification(user_id):
+        department = request.form.get('department', None)
     u = User.query.get_or_404(user_id)
     if request.method == 'POST':
-        u.department = request.form['department']
-        u.section    = request.form['section']
+        department = request.form['department']
+        section = request.form['section']
+        
+        # Validate department and section
+        valid_departments = [d[0] for d in db.session.query(User.department).distinct().all()]
+        valid_sections = [s[0] for s in db.session.query(User.section).distinct().all()]
+        
+        if department not in valid_departments:
+            flash('Invalid department selected.', 'danger')
+            return redirect(url_for('edit_user', user_id=user_id))
+        
+        if section not in valid_sections:
+            flash('Invalid section selected.', 'danger')
+            return redirect(url_for('edit_user', user_id=user_id))
+        
+        u.department = department
+        u.section = section
         db.session.commit()
         flash('User reassigned!', 'success')
         return redirect(url_for('dashboard_registrar'))
@@ -1170,6 +1329,64 @@ def create_assessment_form():
 def list_assessment_forms():
     forms = AssessmentForm.query.filter_by(teacher_id=session['user_id']).all()
     return render_template('assessment_forms.html', forms=forms)
+#----teacher add and edit assessment------#
+@app.route('/assessment-forms/edit/<int:form_id>', methods=['GET', 'POST'])
+@roles_required('teacher')
+def edit_assessment_form(form_id):
+    form = AssessmentForm.query.get_or_404(form_id)
+    if form.teacher_id != session['user_id']:
+        flash('Unauthorized access', 'danger')
+        return redirect(url_for('list_assessment_forms'))
+    
+    if request.method == 'POST':
+        try:
+            form.course = request.form['course']
+            form.department = request.form['department']
+            form.section = request.form['section']
+            weights = [
+                float(request.form['quiz_weight']),
+                float(request.form['test1_weight']),
+                float(request.form['test2_weight']),
+                float(request.form['mid_weight']),
+                float(request.form['project_weight']),
+                float(request.form['assign_weight']),
+                float(request.form['final_weight'])
+            ]
+            total = sum(weights)
+            
+            if total != 100:
+                flash('Total weights must equal 100%', 'danger')
+                return redirect(url_for('edit_assessment_form', form_id=form_id))
+            
+            form.quiz_weight = weights[0]
+            form.test1_weight = weights[1]
+            form.test2_weight = weights[2]
+            form.mid_weight = weights[3]
+            form.project_weight = weights[4]
+            form.assign_weight = weights[5]
+            form.final_weight = weights[6]
+            
+            db.session.commit()
+            flash('Assessment form updated successfully', 'success')
+            return redirect(url_for('list_assessment_forms'))
+        except Exception as e:
+            flash(f'Error updating form: {str(e)}', 'danger')
+    
+    return render_template('edit_assessment_form.html', form=form)
+
+@app.route('/assessment-forms/delete/<int:form_id>', methods=['POST'])
+@roles_required('teacher')
+def delete_assessment_form(form_id):
+    form = AssessmentForm.query.get_or_404(form_id)
+    if form.teacher_id != session['user_id']:
+        flash('Unauthorized action', 'danger')
+        return redirect(url_for('list_assessment_forms'))
+    
+    db.session.delete(form)
+    db.session.commit()
+    flash('Assessment form deleted successfully', 'success')
+    return redirect(url_for('list_assessment_forms'))
+
 
 @app.route('/simulate-performance', methods=['GET','POST'])
 @roles_required('teacher')
@@ -1191,65 +1408,163 @@ def simulate_performance():
 @app.route('/upload-attendance', methods=['GET', 'POST'])
 @roles_required('teacher')
 def upload_attendance():
+    teacher_username = session.get('username')
+    courses = Course.query.filter_by(instructor=teacher_username).all()
+    
     if request.method == 'POST':
+        course_id = request.form.get('course_id')
         file = request.files.get('file')
-        if not file:
-            flash('No file uploaded', 'danger')
-            return redirect(url_for('dashboard_teacher'))
+        
+        if not course_id or not file:
+            flash('Missing required fields', 'danger')
+            return redirect(url_for('upload_attendance'))
+        
         try:
-            df = pd.read_csv(file)  
-            # Expect columns: 'username','date','status'
-            for _, row in df.iterrows():
-                user = User.query.filter_by(username=row['username']).first()
-                if not user:
-                    continue  # skip unknown usernames
-                att = Attendance(
-                    student_id=user.id,
-                    date=pd.to_datetime(row['date']).date(),
+            df = pd.read_csv(file)
+            required_columns = ['username', 'date', 'status']
+            if not all(col in df.columns for col in required_columns):
+                flash('CSV file must contain username, date, and status columns', 'danger')
+                return redirect(url_for('upload_attendance'))
+            
+            success = 0
+            errors = []
+            
+            for index, row in df.iterrows():
+                student = User.query.filter_by(username=row['username'], role='student').first()
+                if not student:
+                    errors.append(f"Row {index+1}: Student not found")
+                    continue
+                
+                try:
+                    date = datetime.strptime(row['date'], '%Y-%m-%d').date()
+                except ValueError:
+                    errors.append(f"Row {index+1}: Invalid date format")
+                    continue
+                
+                if row['status'] not in ['Present', 'Absent']:
+                    errors.append(f"Row {index+1}: Invalid status")
+                    continue
+                
+                existing = Attendance.query.filter_by(
+                    student_id=student.id,
+                    course_id=course_id,
+                    date=date
+                ).first()
+                
+                if existing:
+                    errors.append(f"Row {index+1}: Attendance already exists")
+                    continue
+                
+                attendance = Attendance(
+                    student_id=student.id,
+                    course_id=course_id,
+                    date=date,
                     status=row['status']
                 )
-                db.session.add(att)
+                db.session.add(attendance)
+                success += 1
+            
             db.session.commit()
-            flash('Attendance uploaded successfully.', 'success')
-            return redirect(url_for('dashboard_teacher'))
+            flash(f"Successfully uploaded {success} records. {len(errors)} errors", 'success')
+            if errors:
+                flash("Errors: " + ", ".join(errors[:5]), 'warning')
+            
         except Exception as e:
-            flash(f'Error processing file: {e}', 'danger')
-            return redirect(url_for('dashboard_teacher'))
-    return render_template('upload_attendance.html')
+            flash(f"Error processing file: {str(e)}", 'danger')
+        
+        return redirect(url_for('upload_attendance'))
+    
+    return render_template('upload_attendance.html', courses=courses)
+
+
 #---grade upload-----#
 @app.route('/upload-grades', methods=['GET', 'POST'])
 @roles_required('teacher')
 def upload_grades():
     if request.method == 'POST':
-        predicted = get_predictor_model().predict(df_sim)[0]
-        if not file:
+        if 'file' not in request.files:
             flash('No file uploaded', 'danger')
             return redirect(url_for('upload_grades'))
+        
+        file = request.files['file']
+        if not file.filename.endswith('.csv'):
+            flash('Only CSV files allowed', 'danger')
+            return redirect(url_for('upload_grades'))
+        
         try:
             df = pd.read_csv(file)
+            required_columns = ['username', 'G1', 'G2', 'failures', 'absences', 'studytime', 'age', 'Dalc', 'goout', 'higher']
+            if not all(col in df.columns for col in required_columns):
+                flash('Missing required columns in CSV', 'danger')
+                return redirect(url_for('upload_grades'))
+            
+            predictor = get_predictor_model()
+            classifier = get_classifier_model()
             results = []
+            
             for _, row in df.iterrows():
+                student = User.query.filter_by(username=row['username'], role='student').first()
+                if not student:
+                    continue
+                
                 data = row.to_dict()
-                for feat in input_features:
-                    data.setdefault(feat, 0)
-                data = encode_inputs(data)
-                inp = pd.DataFrame([data])
-                g3   = predictor_model.predict(inp)[0]
-                risk = classifier_model.predict(inp)[0]
-                rec  = generate_recommendation(inp.iloc[0])
+                encoded = encode_inputs(data)
+                df_input = pd.DataFrame([encoded])
+                
+                try:
+                    g3 = predictor.predict(df_input)[0]
+                    risk = classifier.predict(df_input)[0]
+                    recommendation = generate_recommendation(df_input.iloc[0])
+                except Exception as e:
+                    continue
+                
                 results.append({
-                  'username': data.get('username',''),
-                  'g3': round(g3,2),
-                  'risk': 'At Risk' if risk==1 else 'Not At Risk',
-                  'recommendation': rec
+                    'username': row['username'],
+                    'g3': round(g3, 2),
+                    'risk': 'At Risk' if risk == 1 else 'Not At Risk',
+                    'recommendation': recommendation
                 })
+            
             return render_template('grade_upload_results.html', results=results)
+        
         except Exception as e:
-            flash(f'Error processing file: {e}', 'danger')
+            flash(f'Error processing file: {str(e)}', 'danger')
             return redirect(url_for('upload_grades'))
+    
     return render_template('upload_grades.html')
-   
-
+#---------------------------------------   
+#---- view teaching assnmg---
+#------------------------------------
+@app.route('/teaching-assignments')
+@roles_required('teacher')
+def teaching_assignments():
+    teacher_username = session.get('username')
+    
+    # Get assigned courses
+    courses = Course.query.filter_by(instructor=teacher_username).all()
+    
+    # Get students in each course section
+    course_data = []
+    for course in courses:
+        # Get students in this course's department and section
+        students = User.query.filter_by(
+            role='student',
+            department=course.department,
+            section=course.section
+        ).all()
+        
+        # Get number of students
+        student_count = len(students)
+        
+        course_data.append({
+            'course': course,
+            'students': students,
+            'student_count': student_count
+        })
+    
+    return render_template('teaching_assignments.html', 
+                         course_data=course_data,
+                         teacher=teacher_username)
 
 # ---------------------------
 # Prediction Routes
@@ -1340,51 +1655,62 @@ def view_attendance():
         Enrollment.student_id == student_id
     ).distinct().all()
     
-    selected_course = None
-    chart_data = None
+    context = {
+        'courses': courses,
+        'records': [],
+        'selected_course': None,
+        'chart_data': None
+    }
     
+    # In view_attendance route
     if request.method == 'POST':
         course_id = request.form.get('course_id')
-        selected_course = Course.query.get(course_id)
+        if not course_id:
+            flash('Please select a valid course.', 'warning')
+            return redirect(url_for('view_attendance'))
         
-        # Get attendance records for selected course
+        selected_course = Course.query.get(course_id)
+        if not selected_course:
+            flash('Selected course does not exist.', 'danger')
+            return redirect(url_for('view_attendance'))
+        
+        # Get records FOR THE SELECTED COURSE
         records = Attendance.query.filter_by(
             student_id=student_id,
             course_id=course_id
         ).order_by(Attendance.date.desc()).all()
         
-        # Calculate attendance stats
         total = len(records)
         present = len([r for r in records if r.status == 'Present'])
+        # Ensure present does not exceed total
+        present = min(present, total)
         absent = total - present if total > 0 else 0
         
-        # Prepare chart data
+        # Calculate attendance stats
         chart_data = {
             'labels': ['Present', 'Absent'],
             'data': [present, absent],
             'colors': ['#4e73df', '#e74a3b'],
             'total': total,
-            'percentage': round((present / total) * 100, 2) if total > 0 else 0
+            'percentage': round((present / total) * 100, 2) if total > 0 else 0  # Ensure no division by zero
         }
         
-        return render_template('attendance.html', 
-                            records=records,
-                            courses=courses,
-                            selected_course=selected_course,
-                            chart_data=chart_data)
+        context.update({
+            'records': records,
+            'selected_course': selected_course,
+            'chart_data': chart_data
+        })
+    else:
+        # Default GET request
+        records = Attendance.query.filter_by(student_id=student_id)\
+            .order_by(Attendance.date.desc()).all()
+        context.update({
+            'records': records,
+            'selected_course': None,
+            'chart_data': None
+        })
     
-    # Default GET request
-    records = Attendance.query.filter_by(student_id=student_id)\
-        .order_by(Attendance.date.desc()).all()
-    return render_template('attendance.html', 
-                         records=records,
-                         courses=courses,
-                         selected_course=None,
-                         chart_data=None)
-
-
-
-
+    return render_template('attendance.html', **context)
 
  #--- My assessment-----   
 

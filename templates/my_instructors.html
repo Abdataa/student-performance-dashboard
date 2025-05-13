@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-people me-2"></i>My Instructors & Courses</h2>
+    
+    {% if not instructor_data %}
+    <div class="alert alert-info">
+        No course enrollments found
+    </div>
+    {% endif %}
+
+    {% for data in instructor_data %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                {{ data.course.name }}
+                <small class="float-end">
+                    {{ data.course.department }} - Section {{ data.course.section }}
+                </small>
+            </h5>
+        </div>
+        
+        <div class="card-body">
+            <div class="row">
+                <!-- Instructor Info -->
+                <div class="col-md-4 border-end">
+                    <h6><i class="bi bi-person-badge me-2"></i>Instructor</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>Name:</strong> {{ data.instructor.username }}</li>
+                        <li><strong>Email:</strong> {{ data.instructor.email }}</li>
+                        <li><strong>Department:</strong> {{ data.instructor.department }}</li>
+                    </ul>
+                </div>
+                
+                <!-- Attendance -->
+                <div class="col-md-4 border-end">
+                    <h6><i class="bi bi-calendar-check me-2"></i>Attendance</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in data.attendance %}
+                                <tr class="{{ 'table-success' if record.status == 'Present' else 'table-danger' }}">
+                                    <td>{{ record.date.strftime('%d %b %Y') }}</td>
+                                    <td>{{ record.status }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="2">No attendance records</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Assessments -->
+                <div class="col-md-4">
+                    <h6><i class="bi bi-clipboard-data me-2"></i>Assessments</h6>
+                    <div class="list-group">
+                        {% for assessment in data.assessments %}
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ assessment.course }}</h6>
+                                <small>{{ assessment.timestamp.strftime('%d %b') }}</small>
+                            </div>
+                            <small class="text-muted">Weight Distribution Available</small>
+                        </a>
+                        {% else %}
+                        <div class="list-group-item">
+                            No assessments created yet
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

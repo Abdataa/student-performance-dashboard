@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-journal-bookmark me-2"></i>Teaching Assignments</h2>
+    
+    {% if not course_data %}
+    <div class="alert alert-info">
+        No teaching assignments found
+    </div>
+    {% endif %}
+
+    {% for data in course_data %}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                {{ data.course.name }} 
+                <small class="float-end">
+                    {{ data.course.department }} - Section {{ data.course.section }}
+                </small>
+            </h5>
+        </div>
+        
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6><i class="bi bi-people me-2"></i>Enrolled Students ({{ data.student_count }})</h6>
+                    <ul class="list-group">
+                        {% for student in data.students %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ student.username }}
+                            <span class="badge bg-secondary">{{ student.email }}</span>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item">No students enrolled</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="col-md-6 mt-3 mt-md-0">
+                    <h6><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('upload_attendance', course_id=data.course.id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-clipboard-check me-2"></i>Take Attendance
+                        </a>
+                        <a href="{{ url_for('create_assessment_form', course_id=data.course.id) }}" 
+                           class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-file-earmark-plus me-2"></i>Create Assessment
+                        </a>
+                        <a href="{{ url_for('list_assessment_forms', course_id=data.course.id) }}" 
+                           class="btn btn-outline-info btn-sm">
+                            <i class="bi bi-list-check me-2"></i>View Assessments
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

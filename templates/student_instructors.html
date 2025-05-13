@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}My Instructors{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-people-fill"></i> My Instructors & Courses</h2>
+    
+    {% if not instructor_data %}
+    <div class="alert alert-info">
+        No course enrollments found
+    </div>
+    {% endif %}
+
+    {% for data in instructor_data %}
+    <div class="card mb-4 shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                {{ data.course.name }}
+                <small class="float-end">
+                    {{ data.course.department }} - Section {{ data.course.section }}
+                </small>
+            </h4>
+        </div>
+        
+        <div class="card-body">
+            <div class="row">
+                <!-- Instructor Column -->
+                <div class="col-md-4 border-end">
+                    <h5><i class="bi bi-person-badge"></i> Instructor</h5>
+                    {% if data.instructor %}
+                    <div class="instructor-info">
+                        <p class="lead">{{ data.course.instructor_rel.username }}</p>
+                        <ul class="list-unstyled">
+                            <li><i class="bi bi-envelope"></i> {{ data.instructor.email }}</li>
+                            <li><i class="bi bi-building"></i> {{ data.instructor.department }}</li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        No instructor assigned
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Attendance Column -->
+                <div class="col-md-4 border-end">
+                    <h5><i class="bi bi-calendar-check"></i> Recent Attendance</h5>
+                    <div class="attendance-list">
+                        {% if data.attendance %}
+                        <div class="list-group">
+                            {% for record in data.attendance %}
+                            <div class="list-group-item {% if record.status == 'Present' %}list-group-item-success{% else %}list-group-item-danger{% endif %}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <span>{{ record.date.strftime('%b %d, %Y') }}</span>
+                                    <strong>{{ record.status }}</strong>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            No attendance records
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Assessments Column -->
+                <div class="col-md-4">
+                    <h5><i class="bi bi-clipboard-data"></i> Assessments</h5>
+                    {% if data.assessments %}
+                    <div class="list-group">
+                        {% for assessment in data.assessments %}
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ assessment.course }}</h6>
+                                <small>{{ assessment.timestamp|time_ago }}</small>
+                            </div>
+                            <small class="text-muted">Weight Distribution:</small>
+                            <div class="progress mt-1">
+                                <div class="progress-bar" style="width: {{ assessment.final_weight }}%">
+                                    Final: {{ assessment.final_weight }}%
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No assessments available
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

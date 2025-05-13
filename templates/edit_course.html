@@ -1,5 +1,6 @@
 <h2>Edit Course #{{ course.id }}</h2>
 <form method="POST">
+   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <label>Name:       <input name="name" value="{{ course.name }}" required></label><br>
   <label>Department: <input name="department" value="{{ course.department }}" required></label><br>
   <label>Section:    <input name="section" value="{{ course.section }}" required></label><br>
