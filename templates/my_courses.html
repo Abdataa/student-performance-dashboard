@@ -1,15 +1,14 @@
 <div class="container">
     <h2>My Courses</h2>
-    
-    <!-- Semester Selection -->
+
     <div class="mb-4">
         <form class="form-inline">
             <label for="semester_id_select" class="sr-only">Select Semester</label>
             <select id="semester_id_select" name="semester_id" class="form-control" onchange="this.form.submit()">
                 {% for reg in registrations %}
-                <option value="{{ reg.semester_id }}" 
+                <option value="{{ reg.semester_id }}"
                     {% if reg.semester_id == selected_sem_id %}selected{% endif %}>
-                    {{ reg.semester.name }} 
+                    {{ reg.semester.name }}
                     {% if reg.semester.is_open %}(Current){% endif %}
                 </option>
                 {% endfor %}
@@ -23,7 +22,6 @@
     </div>
     {% endif %}
 
-    <!-- Courses List -->
     <div class="row">
         {% for course_info in courses_data %}
         <div class="col-md-6 mb-4">
@@ -34,7 +32,7 @@
                         {{ course_info.schedule }} | {{ course_info.room }}
                     </p>
                 </div>
-                
+
                 <div class="card-body">
                     <div class="mb-3">
                         <h6>Instructor</h6>
@@ -74,4 +72,30 @@
         </div>
         {% endfor %}
     </div>
+
+    <h2 class="mt-4">Courses (Table View)</h2>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Course Name</th>
+                <th>Instructor</th>
+                <th>Schedule</th>
+                <th>Room</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for course_data in courses_data %}
+            <tr>
+                <td>{{ course_data.course.name }}</td>
+                <td>{{ course_data.instructor.username }}</td>
+                <td>{{ course_data.schedule }}</td>
+                <td>{{ course_data.room }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-center">No courses found for selected semester</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>

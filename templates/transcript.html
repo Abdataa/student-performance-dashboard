@@ -1,43 +1,36 @@
-<!-- templates/transcript.html -->
-{% extends "base.html" %}
-{% block title %}Academic Transcript{% endblock %}
-{% block content %}
-<h2>Academic Transcript</h2>
-<div class="card">
-    <div class="card-header">
-        Semester: {{ rows[0][0].semester.name if rows else 'No records' }}
-    </div>
-    <div class="card-body">
-        <table class="table">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Transcript</title>
+</head>
+<body>
+    <h1>Academic Transcript</h1>
+    {% for semester in transcript_data %}
+    <div class="semester">
+        <h2>{{ semester.semester_name }}</h2>
+        <table>
             <thead>
                 <tr>
                     <th>Course</th>
+                    <th>Instructor</th>
                     <th>Score</th>
                     <th>Grade</th>
                 </tr>
             </thead>
             <tbody>
-                {% for enrollment, result in rows %}
+                {% for course in semester.courses %}
                 <tr>
-                    <td>{{ enrollment.course.name }}</td>
-                    <td>
-                        {% if result %}
-                            {{ result.score }}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if result %}
-                            {{ result.score|grade_letter }}
-                        {% else %}
-                            Pending
-                        {% endif %}
-                    </td>
+                    <td>{{ course.course_name }}</td>
+                    <td>{{ course.instructor }}</td>
+                    <td>{{ course.score }}</td>
+                    <td>{{ course.letter_grade }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-</div>
-{% endblock %}
+    {% endfor %}
+</body>
+</html>

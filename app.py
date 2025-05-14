@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, current_app, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,10 +6,11 @@ import joblib
 import pandas as pd
 from datetime import datetime, timezone
 from ML.study_recommendation import generate_recommendation
-from flask_wtf.csrf import CSRFProtect, validate_csrf
+from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
-from werkzeug.exceptions import HTTPException
-from sqlalchemy.exc import SQLAlchemyError
+from flask_login import current_user
+from reportlab.pdfgen import canvas
+from flask import make_response
 
 
 
@@ -25,11 +26,16 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Custom Jinja Filters
 @app.template_filter('grade_letter')
 def grade_letter_filter(score):
-    if score >= 90: return 'A'
-    elif score >= 80: return 'B'
-    elif score >= 70: return 'C'
-    elif score >= 60: return 'D'
-    else: return 'F'
+    if score >= 90: 
+        return 'A'
+    elif score >= 80:
+        return 'B'
+    elif score >= 70: 
+        return 'C'
+    elif score >= 60: 
+        return 'D'
+    else: 
+        return 'F'
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -329,7 +335,9 @@ def login():
 
 @app.route('/logout')
 def logout():
-    session.clear(); flash('Logged out','info'); return redirect(url_for('login'))
+    session.clear()
+    flash('Logged out', 'info')
+    return redirect(url_for('login'))
 
 # ---------------------------
 # Dashboard Routes
@@ -647,7 +655,8 @@ def enroll_students():
         course_id  = request.form['course_id']
         sem_id     = request.form['semester_id']
         e = Enrollment(student_id=student_id, course_id=course_id, semester_id=sem_id)
-        db.session.add(e); db.session.commit()
+        db.session.add(e)
+        db.session.commit()
         flash('Student enrolled','success')
         return redirect(url_for('enroll_students'))
     students = User.query.filter_by(role='student', is_active=True).all()
@@ -858,11 +867,10 @@ def add_semester():
 # ---------------------------
 # Close Semester
 # ---------------------------
-@app.route('/semesters/close/<int:sem_id>', methods=['POST'])
 @roles_required('admin', 'registrar')
 def close_semester(sem_id):
     sem = Semester.query.get_or_404(sem_id)
-    sem.is_open = False
+    sem.is_open = False  # This only prevents new registrations
     db.session.commit()
     flash(f"{sem.name} has been closed", "info")
     return redirect(url_for('manage_semesters'))
@@ -914,16 +922,7 @@ def register_semester():
 # ---------------------------
 # Transcript View (Includes closed semesters)
 # ---------------------------
-@app.route('/transcript')
-@roles_required('student')
-def transcript():
-    student_id = session['user_id']
-    semesters = Semester.query.join(Registration).filter(
-        Registration.student_id == student_id,
-        Registration.status == 'Approved'
-    ).all()
-    
-    return render_template('transcript.html', semesters=semesters)
+
 
 # ---------------------------
 # Registrar Access Control
@@ -1122,6 +1121,15 @@ def attendance_summary():
     
     return render_template('attendance_summary.html', summary=summary)
 
+
+@app.route('/semesters/close/<int:sem_id>', methods=['POST'])
+@roles_required('admin', 'registrar')
+def close_semester(sem_id):
+    sem = Semester.query.get_or_404(sem_id)
+    sem.is_open = False  # This only prevents new registrations
+    db.session.commit()
+    flash(f"{sem.name} has been closed", "info")
+    return redirect(url_for('manage_semesters'))
 
 
 
@@ -1591,11 +1599,8 @@ def predict():
     session['risk_status']     =int(risk)
     session['recommendation']  = rec
 
-    return render_template('result.html', predicted_grade=round(g3,2), risk_status=('At Risk' if risk==1 else 'Not At Risk'), recommendation=rec)
-
 from io import BytesIO
 from flask import make_response
-from reportlab.pdfgen import canvas
 
 
 # Error Handling Pages
