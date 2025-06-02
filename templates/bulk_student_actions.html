@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Bulk Student Actions</h2>
+    <p class="text-muted">Upload a CSV file to register or enroll students in bulk.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    {% endwith %}
+
+    <div class="card mt-3">
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="action" class="form-label">Select Action</label>
+                    <select name="action" id="action" class="form-select" required>
+                        <option value="">-- Choose an action --</option>
+                        <option value="register">Register Students to Semester</option>
+                        <option value="enroll">Enroll Students in Courses</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="file" class="form-label">Upload CSV File</label>
+                    <input type="file" name="file" id="file" class="form-control" accept=".csv" required>
+                    <div class="form-text">CSV format: 
+                        <code>student_id,semester_id</code> for registration or 
+                        <code>student_id,course_id,semester_id</code> for enrollment.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Submit</button>
+                <a href="{{ url_for('registrar_dashboard') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5>Sample CSV Format</h5>
+        <p>Depending on your action, your CSV should follow one of the following formats:</p>
+        <ul>
+            <li><strong>Register:</strong> <code>student_id,semester_id</code></li>
+            <li><strong>Enroll:</strong> <code>student_id,course_id,semester_id</code></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

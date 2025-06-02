@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>At-Risk Students - {{ course.name }}</h2>
+    <p class="text-muted">These students have been flagged as at risk based on attendance and assessment data.</p>
+
+    {% if at_risk_students %}
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover mt-4">
+            <thead class="table-danger">
+                <tr>
+                    <th>#</th>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th>Risk Score</th>
+                    <th>Recommendation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in at_risk_students %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ student.student.full_name }}</td>
+                    <td>{{ student.student.email }}</td>
+                    <td><span class="badge bg-danger">High</span></td>
+                    <td>{{ student.recommendation }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-success mt-4">
+        No students currently flagged as at risk in this course.
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary mt-3">
+        ← Back to Dashboard
+    </a>
+</div>
+{% endblock %}

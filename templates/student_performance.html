@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Student Performance - {{ course.name }}</h2>
+    <p class="text-muted">Overview of students’ attendance and recent assessment results for <strong>{{ course.code }}</strong></p>
+
+    <div class="table-responsive">
+        <table class="table table-hover mt-4">
+            <thead class="thead-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th>Attendance Rate</th>
+                    <th>Latest Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in performance_data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.student.full_name }}</td>
+                    <td>{{ item.student.email }}</td>
+                    <td>
+                        <span class="badge bg-{{ 'success' if item.attendance_rate >= 75 else 'warning' if item.attendance_rate >= 50 else 'danger' }}">
+                            {{ item.attendance_rate | round(1) }}%
+                        </span>
+                    </td>
+                    <td>
+                        {% if item.latest_score != 'N/A' %}
+                            <span class="text-{{ 'success' if item.latest_score >= 75 else 'warning' if item.latest_score >= 50 else 'danger' }}">
+                                {{ item.latest_score }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">No Score</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <a href="{{ url_for('teacher_dashboard') }}" class="btn btn-secondary mt-3">
+        ← Back to Dashboard
+    </a>
+</div>
+{% endblock %}
