@@ -1,0 +1,78 @@
+<!-- templates/prediction_result.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card shadow">
+  <div class="card-header bg-primary text-white">
+    <h2>Performance Prediction Results</h2>
+  </div>
+  
+  <div class="card-body">
+    <!-- Results Display -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body text-center">
+            <h5>Predicted Grade</h5>
+            <div class="display-4 text-{{ 'danger' if result.predicted_grade < 60 else 'success' }}">
+              {{ result.predicted_grade }} <small>({{ result.grade_letter }})</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body text-center">
+            <h5>Risk Status</h5>
+            <span class="badge bg-{{ result.risk_class }} p-3 display-6">
+              {{ result.risk_status }}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <a href="{{ url_for('export_pdf') }}" class="btn btn-danger btn-lg w-100 h-100 d-flex align-items-center justify-content-center">
+          <i class="fas fa-file-pdf me-2"></i> Export PDF Report
+        </a>
+      </div>
+    </div>
+    
+    <!-- Recommendations -->
+    <div class="card border-info">
+      <div class="card-header bg-info text-white">
+        <h4>Personalized Recommendations</h4>
+      </div>
+      <div class="card-body">
+        <ul class="list-group">
+          {% for point in result.recommendation %}
+          {% if point %}
+          <li class="list-group-item">{{ point }}</li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    
+    <!-- Input Summary -->
+    <div class="mt-4">
+      <button class="btn btn-outline-primary w-100" type="button" data-bs-toggle="collapse" data-bs-target="#inputSummary">
+        View Input Summary
+      </button>
+      <div class="collapse mt-2" id="inputSummary">
+        <div class="card card-body">
+          <table class="table table-sm">
+            {% for key, value in result.features.items() %}
+            <tr>
+              <th>{{ key }}</th>
+              <td>{{ value }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

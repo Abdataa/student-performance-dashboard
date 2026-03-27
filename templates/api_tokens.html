@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}API Token Management{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">
+            <i class="bi bi-key-fill me-2"></i>API Token Management
+        </h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTokenModal">
+            <i class="bi bi-plus-circle me-1"></i> Create New Token
+        </button>
+    </div>
+    
+    <!-- Token Creation Modal -->
+    <div class="modal fade" id="createTokenModal" tabindex="-1" aria-labelledby="createTokenModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="createTokenModalLabel">
+                        <i class="bi bi-key me-2"></i>Create API Token
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('manage_api_tokens') }}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="tokenDescription" class="form-label">
+                                <i class="bi bi-card-text me-1"></i> Description
+                            </label>
+                            <input type="text" class="form-control" id="tokenDescription" 
+                                   name="description" placeholder="What will this token be used for?" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-shield-check me-1"></i> Permissions
+                            </label>
+                            <div class="border rounded p-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="permissions" value="read_grades" id="permReadGrades">
+                                            <label class="form-check-label" for="permReadGrades">
+                                                Read Grades
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="permissions" value="write_attendance" id="permWriteAttendance">
+                                            <label class="form-check-label" for="permWriteAttendance">
+                                                Write Attendance
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="permissions" value="read_student_info" id="permReadStudent">
+                                            <label class="form-check-label" for="permReadStudent">
+                                                Read Student Info
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="permissions" value="manage_courses" id="permManageCourses">
+                                            <label class="form-check-label" for="permManageCourses">
+                                                Manage Courses
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tokenExpiry" class="form-label">
+                                <i class="bi bi-calendar-x me-1"></i> Expires In (days)
+                            </label>
+                            <input type="number" class="form-control" id="tokenExpiry" 
+                                   name="expiry_days" min="1" max="365" value="90">
+                            <div class="form-text">
+                                Token will automatically expire after this period
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-key me-1"></i> Generate Token
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Token List -->
+    <div class="card shadow-lg">
+        <div class="card-header bg-light">
+            <h3 class="card-title mb-0">
+                <i class="bi bi-list me-2"></i>Active API Tokens
+            </h3>
+        </div>
+        
+        <div class="card-body">
+            {% if not tokens %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i> No API tokens have been created yet.
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Description</th>
+                                <th>Token</th>
+                                <th>Permissions</th>
+                                <th>Created</th>
+                                <th>Expires</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for token in tokens %}
+                            <tr>
+                                <td>{{ token.description }}</td>
+                                <td>
+                                    <code>{{ token.token[:8] }}****{{ token.token[-8:] }}</code>
+                                </td>
+                                <td>
+                                    {% for perm in token.permissions %}
+                                        <span class="badge bg-primary me-1">{{ perm }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>{{ token.created_at.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    {% if token.expires_at %}
+                                        {{ token.expires_at.strftime('%Y-%m-%d') }}
+                                        {% if token.expires_at < datetime.utcnow() %}
+                                            <span class="badge bg-danger ms-2">Expired</span>
+                                        {% endif %}
+                                    {% else %}
+                                        Never
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if token.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Revoked</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if token.is_active %}
+                                            <form method="POST" action="{{ url_for('revoke_api_token', token_id=token.id) }}">
+                                                <button type="submit" class="btn btn-outline-danger" title="Revoke">
+                                                    <i class="bi bi-slash-circle"></i>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form method="POST" action="{{ url_for('renew_api_token', token_id=token.id) }}">
+                                                <button type="submit" class="btn btn-outline-success" title="Renew">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <form method="POST" action="{{ url_for('delete_api_token', token_id=token.id) }}">
+                                            <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="card-footer bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="bi bi-shield-exclamation me-1"></i> Treat tokens like passwords and keep them secure
+                </small>
+                <span class="badge bg-info">
+                    <i class="bi bi-key me-1"></i> {{ tokens|length }} Tokens
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

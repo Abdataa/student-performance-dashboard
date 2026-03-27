@@ -1,11 +1,12 @@
-<!-- templates/dashboard_admin.html -->
 {% extends "base.html" %}
+
+{% from "macros/health_card.html" import health_card %}
+
 
 {% block content %}
 <div class="container mt-4">
     <h2>Admin Dashboard</h2>
     
-    <!-- System Overview -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
@@ -42,12 +43,99 @@
                             </div>
                         </div>
                     </div>
+
+                    <hr> {# Added a horizontal rule for visual separation #}
+
+                    {# Integrated System Health Cards using the component #}
+                        <div class="row mb-4">
+        <!-- CPU Health Card -->
+         <!-- CPU Health Card -->
+<div class="col-md-3 mb-3">
+    {{ health_card(
+        title='CPU Usage',
+        icon='cpu',
+        value=system_info.cpu_usage,
+        status=services.database.status,
+        progress=system_info.cpu_usage | replace('%', '') | int,
+        progress_label=system_info.cpu_usage,
+        progress_color='info',
+        border='primary',
+        text_color='primary',
+        badge_color='success',
+        footer='Current load'
+    ) }}
+</div>
+
+      
+                
+                   
+                         
+
+                                <!-- Memory Health Card -->
+                                 <!-- Memory Health Card -->
+<div class="col-md-3 mb-3">
+    {{ health_card(
+        title='Memory',
+        icon='memory',
+        value=system_info.memory_usage,
+        status='Active',
+        progress=system_info.memory_usage | replace('%', '') | int,
+        progress_label=system_info.memory_usage,
+        progress_color='warning',
+        border='info',
+        text_color='info',
+        badge_color='primary',
+        footer='RAM utilization'
+    ) }}
+</div>
+
+    
+     
+
+        <!-- Database Health Card -->
+         <!-- Database Health Card -->
+<div class="col-md-3 mb-3">
+    {{ health_card(
+        title='Database',
+        icon='database',
+        value=db_size,
+        status=services.database.status,
+        progress=system_info.disk_usage | replace('%', '') | int,
+        progress_label=system_info.disk_usage,
+        progress_color='success',
+        border='success',
+        text_color='success',
+        badge_color=('danger' if services.database.status != 'OK' else 'success'),
+        footer='SQLite storage'
+    ) }}
+</div>
+
+       
+        
+
+                                <!-- ML Models Card -->
+        <div class="col-md-3 mb-3">
+            {{ health_card(
+                title='ML Models',
+                icon='cpu',
+                value='2 Active',
+                status=services.ml_models.status,
+                progress=100,
+                progress_label='Loaded',
+                progress_color='danger',
+                border='warning',
+                text_color='warning',
+                badge_color=('danger' if 'ERROR' in services.ml_models.status else 'success'),
+                footer='Predictor & Classifier'
+            ) }}
+        </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="card">
@@ -79,9 +167,6 @@
                     <a href="{{ url_for('semester_registrations') }}" class="btn btn-secondary btn-block mb-2">
                         Approve Registrations
                     </a>
-                    <a href="{{ url_for('admin_assessment_forms') }}" class="btn btn-dark btn-block">
-                        Assessment Forms
-                    </a>
                 </div>
             </div>
         </div>
@@ -104,7 +189,6 @@
         </div>
     </div>
 
-    <!-- Advanced Features -->
     <div class="row">
         <div class="col-md-6">
             <div class="card">
@@ -153,7 +237,6 @@
         </div>
     </div>
 
-    <!-- Recent Activities -->
     <div class="row mt-4">
         <div class="col-md-12">
             <div class="card">
@@ -185,7 +268,6 @@
     </div>
 </div>
 
-<!-- Chart.js for visualizations -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Initialize performance chart

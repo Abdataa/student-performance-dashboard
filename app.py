@@ -4,13 +4,31 @@ from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 import joblib
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime, timezone,timedelta
 from ML.study_recommendation import generate_recommendation
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from flask_login import current_user
 from reportlab.pdfgen import canvas
 from flask import make_response
+import secrets
+import platform
+import psutil
+import time
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
+from sqlalchemy import text  #
+import os
+from pathlib import Path
+import shutil
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_authorize import Authorize
+from io import BytesIO
+from flask import make_response
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.executors.pool import ThreadPoolExecutor
 
 
 
@@ -20,8 +38,6 @@ csrf = CSRFProtect(app)
 app.secret_key = 'supersecretkey'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///student_performance.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
 
 # Custom Jinja Filters
 @app.template_filter('grade_letter')
@@ -178,6 +194,34 @@ class AuditLog(db.Model):
     details = db.Column(db.Text)
     user = db.relationship('User', backref='audit_logs')
 
+# ---------------------------
+# APIToken model definition
+class APIToken(db.Model):
+    __tablename__ = 'api_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), unique=True, nullable=False)
+    description = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used = db.Column(db.DateTime)
+    expires_at = db.Column(db.DateTime)
+    permissions = db.Column(db.JSON)  # ['read_grades', 'write_attendance']
+    is_active = db.Column(db.Boolean, default=True)
+
+    def generate_token(self):
+        self.token = secrets.token_urlsafe(48)
+        return self.token  
+class Session(db.Model):
+    __tablename__ = 'sessions'
+    id = db.Column(db.String(255), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    expiry = db.Column(db.DateTime, nullable=False)
+    data = db.Column(db.LargeBinary, nullable=True)  # Store session data (pickled or JSON)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(256), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_activity = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user = db.relationship('User', backref='sessions')
+
 with app.app_context():
     #db.drop_all()
     db.create_all()
@@ -194,7 +238,8 @@ with app.app_context():
   #  )
   #  db.session.add(default_admin)
   #  db.session.commit()
-
+scheduler = BackgroundScheduler()
+scheduler.start()
 
 # ---------------------------
 # Load ML Models
@@ -297,10 +342,6 @@ def login_required(f):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
-
-   
-    
-
 # ---------------------------
 # Authentication (username-based)
 # ---------------------------
@@ -399,11 +440,6 @@ def email_templates():
 
 
 # ---------------------------
-# Semester Management (Registrar/Admin)
-# ---------------------------
-#toggle semester
-
-  
 
 
 @app.route('/my-courses')
@@ -630,7 +666,7 @@ def assign_instructor():
             User.role == 'teacher'
         ).first_or_404()
 
-        if course.instructor and course.instructor.lower() == instructor.username.lower():
+        if course.instructor_rel and course.instructor_rel.username.lower() == instructor.username.lower():
             flash(f'{instructor.username} already assigned', 'info')
             return redirect_back()
 
@@ -756,23 +792,36 @@ def add_registrar():
         db.session.add(user)
         db.session.commit()
         flash('Registrar account created!', 'success')
-        return redirect(url_for('dashboard_admin'))
+        return redirect(url_for('user_management'))
     return render_template('add_registrar.html')
 
 
-# --- Admin: Add or Edit Any User ---
 @app.route('/admin/add-user', methods=['GET','POST'])
-@roles_required('admin')
+@roles_required('admin')      
 def admin_add_user():
     if request.method == 'POST':
-        # collect form inputs
-        username   = request.form['username']
-        email      = request.form['email']
-        password   = request.form['password']
-        role       = request.form['role']        # e.g. student/teacher/registrar
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form.get('password')  # Moved inside POST block
+        role = request.form.get('role')  
         department = request.form.get('department')
-        section    = request.form.get('section')
-        # create & save
+        section = request.form.get('section')
+
+        # Check for duplicates
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists!', 'danger')
+            return render_template('admin_add_user.html', form_data=request.form)
+            
+        if User.query.filter_by(email=email).first():
+            flash('Email already registered!', 'danger')
+            return render_template('admin_add_user.html', form_data=request.form)
+        
+        # Validate required fields
+        if not all([username, email, password]):
+            flash('All fields are required', 'danger')
+            return render_template('admin_add_user.html', form_data=request.form)
+
+        # Create user
         new = User(
             username=username,
             email=email,
@@ -784,8 +833,10 @@ def admin_add_user():
         )
         db.session.add(new)
         db.session.commit()
-        flash(f'{role.capitalize()} created!', 'success')
+        flash('User created successfully!', 'success')
         return redirect(url_for('user_management'))
+    
+    # Handle GET request
     return render_template('admin_add_user.html')
 
 @app.route('/admin/edit-user/<int:user_id>', methods=['GET','POST'])
@@ -798,7 +849,7 @@ def admin_edit_user(user_id):
         u.role       = request.form['role']
         u.department = request.form.get('department')
         u.section    = request.form.get('section')
-        u.password =request.form['password']
+        u.password_hash = generate_password_hash(request.form['password'])
         db.session.commit()
         flash('User updated!', 'success')
         return redirect(url_for('user_management'))
@@ -848,7 +899,7 @@ def add_semester():
                     name=request.form[f'course_{i}_name'],
                     department=request.form[f'course_{i}_dept'],
                     section=request.form[f'course_{i}_section'],
-                    instructor=int(request.form[f'course_{i}_instructor']),  # Convert to int
+                    instructor=User.query.get(int(request.form[f'course_{i}_instructor'])),  # Assign User object
                     semester_id=sem.id
                 )
                 db.session.add(course)
@@ -874,6 +925,164 @@ def close_semester(sem_id):
     db.session.commit()
     flash(f"{sem.name} has been closed", "info")
     return redirect(url_for('manage_semesters'))
+# ---------------------------
+# API Token Management
+
+@app.route('/admin/api-tokens', methods=['GET', 'POST'])
+@roles_required('admin')
+def manage_api_tokens():
+    if request.method == 'POST':
+        # Create new token
+        description = request.form.get('description', '').strip()
+        permissions = request.form.getlist('permissions')
+        expiry_days = int(request.form.get('expiry_days', 90))
+        
+        new_token = APIToken(
+            description=description,
+            permissions=permissions,
+            expires_at=datetime.utcnow() + timedelta(days=expiry_days)
+        )
+        new_token.generate_token()
+        
+        db.session.add(new_token)
+        db.session.commit()
+        
+        flash('API token created successfully!', 'success')
+        return redirect(url_for('manage_api_tokens'))
+    
+    tokens = APIToken.query.order_by(APIToken.created_at.desc()).all()
+    return render_template('api_tokens.html', tokens=tokens)
+# ---------------------------
+# API Token Actions
+@app.route('/admin/api-tokens/revoke/<int:token_id>', methods=['POST'])
+@roles_required('admin')
+def revoke_api_token(token_id):
+    token = APIToken.query.get_or_404(token_id)
+    token.is_active = False
+    db.session.commit()
+    flash('API token revoked', 'info')
+    return redirect(url_for('manage_api_tokens'))
+# ---------------------------
+# Renew API Token
+@app.route('/admin/api-tokens/renew/<int:token_id>', methods=['POST'])
+@roles_required('admin')
+def renew_api_token(token_id):
+    token = APIToken.query.get_or_404(token_id)
+    token.generate_token()
+    token.expires_at = datetime.utcnow() + timedelta(days=90)
+    token.is_active = True
+    db.session.commit()
+    flash('API token renewed', 'success')
+    return redirect(url_for('manage_api_tokens'))
+# --------------------------- 
+# Delete API Token
+
+@app.route('/admin/api-tokens/delete/<int:token_id>', methods=['POST'])
+@roles_required('admin')
+def delete_api_token(token_id):
+    token = APIToken.query.get_or_404(token_id)
+    db.session.delete(token)
+    db.session.commit()
+    flash('API token deleted', 'info')
+    return redirect(url_for('manage_api_tokens'))
+
+# ---------------------------
+# System Health Check
+# ---------------------------
+@app.route('/admin/system-health')
+@roles_required('admin')
+@login_required  # Extra security layer
+def system_health():
+    # ----------------------
+    # Database Health Check
+    # ----------------------
+    try:
+        db.session.execute(text('SELECT 1'))  # ✅ Use text() for raw SQL
+        db_status = {'status': 'OK', 'class': 'success'}
+    except Exception as e:
+        db_status = {'status': f'ERROR: {str(e)}', 'class': 'danger'}
+    
+    # ----------------------
+    # ML Model Status
+    # ----------------------
+    try:
+        predictor = get_predictor_model()
+        classifier = get_classifier_model()
+        ml_status = {'status': 'Loaded', 'class': 'success'}
+    except Exception as e:
+        ml_status = {'status': f'ERROR: {str(e)}', 'class': 'danger'}
+    
+    # ----------------------
+    # Database Storage Size
+    # ----------------------
+    try:
+        db_uri = app.config['SQLALCHEMY_DATABASE_URI']
+        if db_uri.startswith('sqlite:///'):
+            db_path = os.path.abspath(db_uri.replace('sqlite:///', ''))
+            db_size_val = Path(db_path).stat().st_size / (1024 * 1024)  # MB
+            db_size = f"{db_size_val:.2f} MB"
+        else:
+            db_size = "Unavailable (non-sqlite DB)"
+    except Exception as e:
+        db_size = f"Error: {str(e)}"
+    
+    # ----------------------
+    # System Metrics
+    # ----------------------
+    try:
+        system_info = {
+            'platform': platform.system(),
+            'release': platform.release(),
+            'python_version': platform.python_version(),
+            'cpu_usage': f"{psutil.cpu_percent()}%",
+            'memory_usage': f"{psutil.virtual_memory().percent}%",
+            'disk_usage': f"{psutil.disk_usage('/').percent}%",
+            'uptime': str(timedelta(seconds=int(time.time() - psutil.boot_time())))
+        }
+    except Exception as e:
+        system_info = {
+            'platform': 'Error',
+            'release': 'Error',
+            'python_version': 'Error',
+            'cpu_usage': f"Error: {str(e)}",
+            'memory_usage': 'Error',
+            'disk_usage': 'Error',
+            'uptime': 'Error'
+        }
+
+    # ----------------------
+    # Service Status Summary
+    # ----------------------
+    services = {
+        'database': db_status,
+        'ml_models': ml_status,
+        'scheduler': {
+            'status': 'Running' if scheduler.running else 'Stopped',
+            'class': 'success' if scheduler.running else 'danger'
+        },
+        'jobs': f"{len(scheduler.get_jobs())} active"
+    }
+    
+    # ----------------------
+    # Render System Health Template
+    # ----------------------
+    return render_template(
+        'system_health.html',
+        db_size=db_size,
+        services=services,
+        system_info=system_info,
+        scheduler=scheduler,
+        current_time=datetime.utcnow()
+    )
+
+# Context Processor for Debug Mode
+@app.context_processor
+def inject_debug():
+    return {'debug': app.debug}
+
+
+# ---------------------------
+# Restart Task Scheduler
 
 # ---------------------------
 # Updated Student Registration
@@ -919,10 +1128,58 @@ def register_semester():
                          semesters=open_sems,
                          current_registrations=Registration.query.filter_by(student_id=student_id).all())
 
-# ---------------------------
-# Transcript View (Includes closed semesters)
-# ---------------------------
 
+# ---------------------------
+@app.route('/transcript')
+@roles_required('student')
+def transcript():
+    student_id = session['user_id']
+    
+    # Get all approved registrations with semesters
+    registrations = (
+        Registration.query
+        .filter_by(student_id=student_id, status='Approved')
+        .join(Semester)
+        .order_by(Semester.name.desc())
+        .all()
+    )
+    
+    # Build transcript data structure
+    transcript_data = []
+    for reg in registrations:
+        semester = reg.semester
+        
+        # Get enrollments and courses for this semester
+        enrollments = (
+            Enrollment.query
+            .filter_by(student_id=student_id, semester_id=semester.id)
+            .options(db.joinedload(Enrollment.course))
+            .all()
+        )
+        
+        semester_courses = []
+        for enroll in enrollments:
+            course = enroll.course
+            
+            # Get final grade if available
+            grade = "N/A"
+            # (Implement actual grade lookup here)
+            
+            semester_courses.append({
+                'name': course.name,
+                'department': course.department,
+                'section': course.section,
+                'grade': grade,
+                'credits': 3  # Default value, implement actual credit system
+            })
+        
+        transcript_data.append({
+            'semester_name': semester.name,
+            'courses': semester_courses,
+            'gpa': 0.0  # Calculate actual GPA later
+        })
+    
+    return render_template('transcript.html', transcript_data=transcript_data)
 
 # ---------------------------
 # Registrar Access Control
@@ -948,22 +1205,6 @@ def toggle_user(user_id):
     db.session.commit()
     flash(f"{user.username} is now {'Active' if user.is_active else 'Inactive'}.", 'info')
     return redirect(url_for('dashboard_registrar'))
-
-
-
-
-    # Original delete logic
-
-
-
-
-
-
-###sem and toggle
-
-
-
-
 
 # --- Admin: Manage Courses ---
 
@@ -1014,15 +1255,7 @@ def delete_course(course_id):
     return redirect(url_for('manage_courses'))
 
 
-# --- Admin Routes: Assessment Form Management ---
-@app.route('/admin/assessment-forms')
-@roles_required('admin')
-def admin_assessment_forms():
-    forms = AssessmentForm.query.all()
-    return render_template('admin_assessment_forms.html', forms=forms)
-# #----admin delete created assessment-form-------
-#@app.route('/admin/delete-form/<int:form_id>', methods=['POST'])
-#@roles_required('admin')
+# --- Admin Routes: ('admin')
 #def delete_assessment_form(form_id):
 #    form = AssessmentForm.query.get(form_id)
 #    if form:
@@ -1071,7 +1304,95 @@ def system_settings():
         'grade_scale': {'A': 90, 'B': 80, 'C': 70, 'D': 60}
     }
     return render_template('system_settings.html', config=current_config)
-
+#--------------------------------------------------
+# Update your security_settings route
+@app.route('/admin/security-settings', methods=['GET','POST'])
+@roles_required('admin')
+def security_settings():
+    if request.method == 'POST':
+        set_config('login_attempts', int(request.form['max_login_attempts']))
+        set_config('password_expiry', int(request.form['password_expiry_days']))
+        set_config('session_timeout', 'session_timeout' in request.form)
+        set_config('session_timeout_minutes', int(request.form.get('session_timeout_minutes', 30)))
+        flash('Security settings updated', 'success')
+    
+    return render_template('security_settings.html', 
+                          config={
+                              'max_login_attempts': get_config('login_attempts', 5),
+                              'password_expiry': get_config('password_expiry', 90),
+                              'session_timeout': get_config('session_timeout', False),
+                              'session_timeout_minutes': get_config('session_timeout_minutes', 30)
+                          },
+                          current_time=datetime.utcnow())
+#----admin------data integrity checks-------
+@app.route('/admin/data-integrity')
+@roles_required('admin')
+def data_integrity():
+    issues = []
+    
+    # 1. Orphaned enrollments (student doesn't exist)
+    orphaned_enrollments = Enrollment.query.filter(
+        ~Enrollment.student_id.in_(db.session.query(User.id))
+    ).all()
+    
+    if orphaned_enrollments:
+        issues.append({
+            'type': 'Orphaned Enrollments',
+            'count': len(orphaned_enrollments),
+            'details': orphaned_enrollments
+        })
+    
+    # 2. Course without instructor
+    courses_without_instructor = Course.query.filter(
+        Course.instructor_rel == None
+    ).all()
+    
+    if courses_without_instructor:
+        issues.append({
+            'type': 'Courses Without Instructor',
+            'count': len(courses_without_instructor),
+            'details': courses_without_instructor
+        })
+    
+    # 3. Grade anomalies
+    anomaly_grades = AssessmentResult.query.filter(
+        AssessmentResult.score > 100
+    ).all()
+    
+    # 4. Invalid assessment weights
+    invalid_weights = AssessmentForm.query.filter(
+        (AssessmentForm.quiz_weight + 
+         AssessmentForm.test1_weight +
+         AssessmentForm.test2_weight +
+         AssessmentForm.mid_weight +
+         AssessmentForm.project_weight +
+         AssessmentForm.assign_weight +
+         AssessmentForm.final_weight) != 100
+    ).all()
+    
+    if invalid_weights:
+        issues.append({
+            'type': 'Invalid Assessment Weights',
+            'count': len(invalid_weights),
+            'details': invalid_weights
+        })
+    
+    # 5. Users without role
+    users_without_role = User.query.filter(
+        User.role == None
+    ).all()
+    
+    if users_without_role:
+        issues.append({
+            'type': 'Users Without Role',
+            'count': len(users_without_role),
+            'details': users_without_role
+        })
+    
+    return render_template('data_integrity.html', 
+                          issues=issues, 
+                          anomalies=anomaly_grades,
+                          current_time=datetime.utcnow())
 # ---------------------------
 # Admin Analytics Routes
 # ---------------------------
@@ -1151,17 +1472,67 @@ def dashboard_admin():
         'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
         'data': [75, 82, 78, 85]
     }
+
+        # System health data
+    try:
+        db.session.execute('SELECT 1')
+        db_status = 'OK'
+    except Exception as e:
+        db_status = f'ERROR: {str(e)}'
+    
+    try:
+        predictor = get_predictor_model()
+        classifier = get_classifier_model()
+        ml_status = 'Loaded'
+    except Exception as e:
+        ml_status = f'ERROR: {str(e)}'
+    
+    try:
+        from pathlib import Path
+        db_path = app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', '')
+        db_size = Path(db_path).stat().st_size / (1024*1024)  # MB
+        db_size = f"{db_size:.2f} MB"
+    except Exception as e:
+        db_size = f"Error: {str(e)}"
+    
+    # System metrics
+    system_info = {
+        'cpu_usage': f"{psutil.cpu_percent()}%",
+        'memory_usage': f"{psutil.virtual_memory().percent}%",
+        'disk_usage': f"{psutil.disk_usage('/').percent}%",
+    }
+    
+    # Service status
+    services = {
+        'database': {'status': db_status},
+        'ml_models': {'status': ml_status}
+    }
     
     return render_template(
         'dashboard_admin.html',
         stats=stats,
         recent_activities=recent_activities,
         grade_labels=grade_data['labels'],
-        grade_data=grade_data['data']
-    )    
+        grade_data=grade_data['data'],
+        db_size=db_size,
+        services=services,
+        system_info=system_info
+    )
+    
+
+      
+#fix orphaned enrollments
+@app.route('/admin/fix-orphaned/<int:enrollment_id>', methods=['POST'])
+@roles_required('admin')
+def fix_orphaned(enrollment_id):
+    enrollment = Enrollment.query.get_or_404(enrollment_id)
+    db.session.delete(enrollment)
+    db.session.commit()
+    flash('Orphaned enrollment removed', 'success')
+    return redirect(url_for('data_integrity'))  
 
 
-
+#----registrar routes for managing students and teachers-----
 # --- Registrar: Add Student or Teacher ---
 @app.route('/registrar/add-user', methods=['GET','POST'])
 @roles_required('registrar')
@@ -1304,7 +1675,73 @@ def dashboard_registrar():
         recent_registrations=recent_registrations
     )
 
+#---------------
 
+#----------------
+@app.route('/registrar/enrollment-analytics')
+@roles_required('registrar')
+def enrollment_analytics():
+    # Department enrollment stats
+    dept_stats = db.session.query(
+        User.department,
+        db.func.count(Enrollment.id)
+    ).join(Enrollment, User.id == Enrollment.student_id)\
+     .group_by(User.department).all()
+    
+    # Course popularity
+    course_stats = db.session.query(
+        Course.name,
+        db.func.count(Enrollment.id)
+    ).join(Enrollment)\
+     .group_by(Course.name)\
+     .order_by(db.desc(db.func.count(Enrollment.id)))\
+     .limit(10).all()
+    
+    # Semester-wise trends
+    semester_stats = db.session.query(
+        Semester.name,
+        db.func.count(Registration.id)
+    ).join(Registration)\
+     .group_by(Semester.name).all()
+    
+    return render_template('enrollment_analytics.html',
+                          dept_stats=dept_stats,
+                          course_stats=course_stats,
+                          semester_stats=semester_stats)
+#---------------------------
+
+#------------------------
+@app.route('/registrar/bulk-actions', methods=['GET', 'POST'])
+@roles_required('registrar')
+def bulk_student_actions():
+    if request.method == 'POST':
+        action = request.form['action']
+        file = request.files['file']
+        
+        if file:
+            df = pd.read_csv(file)
+            for _, row in df.iterrows():
+                if action == 'register':
+                    # Create semester registration
+                    new_reg = Registration(
+                        student_id=row['student_id'],
+                        semester_id=row['semester_id'],
+                        status='Approved'
+                    )
+                    db.session.add(new_reg)
+                elif action == 'enroll':
+                    # Enroll in course
+                    new_enroll = Enrollment(
+                        student_id=row['student_id'],
+                        course_id=row['course_id'],
+                        semester_id=row['semester_id']
+                    )
+                    db.session.add(new_enroll)
+            
+            db.session.commit()
+            flash(f'Bulk {action} completed for {len(df)} records', 'success')
+    
+    return render_template('bulk_student_actions.html')
 
 # ---------------------------
 # Teacher: Assessment Forms & Simulation
@@ -1362,7 +1799,7 @@ def edit_assessment_form(form_id):
             ]
             total = sum(weights)
             
-            if total != 100:
+            if abs(total - 100) > 1e-6:
                 flash('Total weights must equal 100%', 'danger')
                 return redirect(url_for('edit_assessment_form', form_id=form_id))
             
@@ -1520,9 +1957,13 @@ def upload_grades():
                 df_input = pd.DataFrame([encoded])
                 
                 try:
-                    g3 = predictor.predict(df_input)[0]
-                    risk = classifier.predict(df_input)[0]
-                    recommendation = generate_recommendation(df_input.iloc[0])
+                    try:
+                        g3 = predictor.predict(df_input)[0]
+                        risk = classifier.predict(df_input)[0]
+                        recommendation = generate_recommendation(df_input.iloc[0])
+                    except Exception as e:
+                        flash(f"Error during prediction: {str(e)}", 'danger')
+                        continue
                 except Exception as e:
                     continue
                 
@@ -1573,6 +2014,79 @@ def teaching_assignments():
     return render_template('teaching_assignments.html', 
                          course_data=course_data,
                          teacher=teacher_username)
+@app.route('/teacher/student-performance/<int:course_id>')
+@roles_required('teacher')
+def student_performance(course_id):
+    course = Course.query.get_or_404(course_id)
+    students = Enrollment.query.filter_by(course_id=course_id).join(User).all()
+    
+    # Calculate performance metrics
+    performance_data = []
+    for student in students:
+        attendance = Attendance.query.filter_by(
+            student_id=student.student_id,
+            course_id=course_id,
+            status='Present'
+        ).count()
+        total_classes = Attendance.query.filter_by(course_id=course_id).count()
+        attendance_rate = (attendance / total_classes * 100) if total_classes > 0 else 0
+        
+        # Get latest assessment
+        latest_assessment = AssessmentResult.query.filter_by(
+            student_id=student.student_id
+        ).order_by(AssessmentResult.id.desc()).first()
+        
+        performance_data.append({
+            'student': student.student,
+            'attendance_rate': attendance_rate,
+            'latest_score': latest_assessment.score if latest_assessment else 'N/A'
+        })
+    
+    return render_template('student_performance.html', 
+                          course=course,
+                          performance_data=performance_data)
+#----------------------------
+
+# At-Risk Students Prediction
+@app.route('/teacher/at-risk-students/<int:course_id>')
+@roles_required('teacher')
+def at_risk_students(course_id):
+    course = Course.query.get_or_404(course_id)
+    students = Enrollment.query.filter_by(course_id=course_id).join(User).all()
+    
+    at_risk = []
+    for student in students:
+        # Get student data for prediction
+        attendance = Attendance.query.filter_by(
+            student_id=student.student_id,
+            course_id=course_id
+        ).count()
+        
+        # Get assessment history
+        assessments = AssessmentResult.query.filter_by(
+            student_id=student.student_id
+        ).all()
+        avg_score = sum(a.score for a in assessments) / len(assessments) if assessments else 0
+        
+        # Predict risk
+        input_data = pd.DataFrame([{
+            'absences': 100 - attendance,
+            'G1': avg_score - 10 if avg_score > 10 else avg_score,
+            'G2': avg_score,
+            'failures': 0  # Placeholder
+        }])
+        risk = get_classifier_model().predict(input_data)[0]
+        
+        if risk == 1:
+            at_risk.append({
+                'student': student.student,
+                'risk_score': risk,
+                'recommendation': generate_recommendation(input_data.iloc[0])
+            })
+    
+    return render_template('at_risk_students.html', 
+                          course=course,
+                          at_risk_students=at_risk)
 
 # ---------------------------
 # Prediction Routes
@@ -1599,8 +2113,7 @@ def predict():
     session['risk_status']     =int(risk)
     session['recommendation']  = rec
 
-from io import BytesIO
-from flask import make_response
+
 
 
 # Error Handling Pages
@@ -1730,7 +2243,181 @@ def my_assessments():
         section=me.section
     ).paginate(page=page, per_page=10)  # 10 forms per page
     return render_template('my_assessments.html', forms=forms.items, pagination=forms, me=me)
+#
+# ---------------------------
+# Scheduler Setup
+def start_scheduler():
+    if not scheduler.running:
+        scheduler.start()
+        # Add example job (replace with your actual jobs)
+        scheduler.add_job(
+            id='daily_maintenance',
+            func=lambda: print("Performing daily maintenance"),
+            trigger='cron',
+            hour=3  # 3 AM daily
+        )
+
+# Shutdown scheduler when app exits
+atexit.register(lambda: scheduler.shutdown(wait=False))
+# ---------------------------
+# Scheduler Setup
+# ---------------------------
+
+
+# Configure scheduler
+scheduler = BackgroundScheduler({
+    'apscheduler.jobstores.default': SQLAlchemyJobStore(
+        url=app.config['SQLALCHEMY_DATABASE_URI']
+    ),
+    'apscheduler.executors.default': ThreadPoolExecutor(20),
+    'apscheduler.job_defaults.coalesce': False,
+    'apscheduler.job_defaults.max_instances': 3,
+    'apscheduler.timezone': 'UTC',
+})
+
+# ---------------------------
+# Scheduled Jobs
+# ---------------------------
+def daily_maintenance():
+    """Perform daily system maintenance tasks"""
+    with app.app_context():
+        try:
+            app.logger.info("Starting daily maintenance...")
+
+            # 1. Clean up old sessions
+            old_sessions = datetime.utcnow() - timedelta(days=7)
+            deleted = db.session.query(Session).filter(Session.expiry < old_sessions).delete()
+            db.session.commit()
+            app.logger.info(f"Cleaned up {deleted} expired sessions")
+
+            # 2. Backup database
+            if not app.debug:
+                backup_dir = Path(app.root_path) / 'backups'
+                backup_dir.mkdir(exist_ok=True)
+                timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+                backup_file = backup_dir / f'db_backup_{timestamp}.sqlite'
+                shutil.copy2(app.config['SQLALCHEMY_DATABASE_URI'].replace('sqlite:///', ''), backup_file)
+                app.logger.info(f"Created database backup: {backup_file}")
+
+            # 3. Send daily reports
+            admins = User.query.filter_by(role='admin').all()
+            for admin in admins:
+                pass  # Replace with actual email logic
+
+            app.logger.info("Completed daily maintenance")
+        except Exception as e:
+            app.logger.error(f"Maintenance job failed: {str(e)}")
+
+
+def model_retraining():
+    """Periodically retrain ML models"""
+    try:
+        app.logger.info("Starting model retraining...")
+        # Add your actual retraining logic here
+        # train_predictor_model()
+        # train_classifier_model()
+        app.logger.info("Model retraining completed")
+    except Exception as e:
+        app.logger.error(f"Model retraining failed: {str(e)}")
+
+# ---------------------------
+# Scheduler Control Functions
+# ---------------------------
+
+def start_scheduler():
+    """Initialize and start the scheduler"""
+    if not scheduler.running:
+        try:
+            scheduler.start()
+            
+            # Add scheduled jobs if they don't exist
+            if not scheduler.get_job('daily_maintenance'):
+                scheduler.add_job(
+                    id='daily_maintenance',
+                    func=daily_maintenance,
+                    trigger=CronTrigger(hour=3, minute=0),  # 3 AM daily
+                    replace_existing=True
+                )
+                
+            if not scheduler.get_job('model_retraining'):
+                scheduler.add_job(
+                    id='model_retraining',
+                    func=model_retraining,
+                    trigger=CronTrigger(day_of_week='sun', hour=4),  # 4 AM every Sunday
+                    replace_existing=True
+                )
+                
+            app.logger.info("Scheduler started with jobs:")
+            for job in scheduler.get_jobs():
+                app.logger.info(f" - {job.id} (next run: {job.next_run_time})")
+                
+        except Exception as e:
+            app.logger.critical(f"Failed to start scheduler: {str(e)}")
+    else:
+        app.logger.warning("Scheduler is already running")
+
+# ---------------------------
+# Scheduler Management Routes
+# ---------------------------
+
+@app.route('/admin/restart-scheduler', methods=['POST'])
+@roles_required('admin')
+def restart_scheduler():
+    """Restart the scheduler"""
+    try:
+        # Shutdown existing scheduler
+        if scheduler.running:
+            scheduler.shutdown(wait=False)
+            
+        # Reinitialize and start
+        start_scheduler()
+        
+        flash('Scheduler restarted successfully', 'success')
+    except Exception as e:
+        flash(f'Error restarting scheduler: {str(e)}', 'danger')
+    return redirect(url_for('system_health'))
+
+@app.route('/admin/pause-scheduler', methods=['POST'])
+@roles_required('admin')
+def pause_scheduler():
+    """Pause the scheduler"""
+    try:
+        if scheduler.running:
+            scheduler.pause()
+            flash('Scheduler paused successfully', 'success')
+        else:
+            flash('Scheduler is not running', 'warning')
+    except Exception as e:
+        flash(f'Error pausing scheduler: {str(e)}', 'danger')
+    return redirect(url_for('system_health'))
+
+@app.route('/admin/resume-scheduler', methods=['POST'])
+@roles_required('admin')
+def resume_scheduler():
+    """Resume the scheduler"""
+    try:
+        if scheduler.state == 1:  # 1 = STATE_PAUSED
+            scheduler.resume()
+            flash('Scheduler resumed successfully', 'success')
+        else:
+            flash('Scheduler is not paused', 'warning')
+    except Exception as e:
+        flash(f'Error resuming scheduler: {str(e)}', 'danger')
+    return redirect(url_for('system_health'))
+
+# ---------------------------
+# Application Startup
+# ---------------------------
+
+# Initialize scheduler when app starts
+with app.app_context():
+    start_scheduler()
+
+# Shutdown scheduler when app exits
+atexit.register(lambda: scheduler.shutdown(wait=False))
+
 
 
 if __name__=='__main__':
+    start_scheduler()
     app.run(debug=True)

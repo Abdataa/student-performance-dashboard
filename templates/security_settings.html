@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Security Settings{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="bi bi-shield-lock me-2"></i>Security Settings
+                    </h3>
+                </div>
+                
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('security_settings') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Authentication Settings</h5>
+                            
+                            <div class="mb-3">
+                                <label for="max_login_attempts" class="form-label">
+                                    <i class="bi bi-door-closed me-1"></i> Max Login Attempts
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="max_login_attempts"
+                                       name="max_login_attempts" 
+                                       min="1" max="10"
+                                       value="{{ config.max_login_attempts }}" required>
+                                <div class="form-text">
+                                    Number of allowed failed login attempts before account lockout
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password_expiry_days" class="form-label">
+                                    <i class="bi bi-calendar-x me-1"></i> Password Expiration (days)
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="password_expiry_days"
+                                       name="password_expiry_days" 
+                                       min="30" max="365"
+                                       value="{{ config.password_expiry }}" required>
+                                <div class="form-text">
+                                    Number of days before passwords must be changed
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Session Security</h5>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="session_timeout"
+                                       name="session_timeout" 
+                                       {{ 'checked' if config.session_timeout else '' }}>
+                                <label class="form-check-label" for="session_timeout">
+                                    Enable Session Timeout
+                                </label>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="session_timeout_minutes" class="form-label">
+                                    <i class="bi bi-clock-history me-1"></i> Session Timeout (minutes)
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="session_timeout_minutes"
+                                       name="session_timeout_minutes" 
+                                       min="5" max="240"
+                                       value="{{ config.session_timeout_minutes or 30 }}"
+                                       {{ 'disabled' if not config.session_timeout else '' }}>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="reset" class="btn btn-outline-secondary me-md-2">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i> Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Last updated: {{ current_time|time_ago }}
+                        </small>
+                        <span class="badge bg-info">
+                            <i class="bi bi-shield-check me-1"></i> Secure
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for dynamic form behavior -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sessionTimeout = document.getElementById('session_timeout');
+    const timeoutMinutes = document.getElementById('session_timeout_minutes');
+    
+    // Toggle session timeout field
+    sessionTimeout.addEventListener('change', function() {
+        timeoutMinutes.disabled = !this.checked;
+    });
+    
+    // Initialize state
+    timeoutMinutes.disabled = !sessionTimeout.checked;
+});
+</script>
+{% endblock %}
