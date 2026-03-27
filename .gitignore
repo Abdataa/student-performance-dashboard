@@ -16,3 +16,22 @@ __pycache__/
 *.7z
 
 venv/
+.venv/
+.pynb_checkpoints/
+### Ignore Jupyter Notebook checkpoints
+migrations/
+## Ignore virtual documents and instance folders
+.virtual_documents/
+#
+instance/
+
+# Ignore machine learning models and temporary files
+ML/
+## Ignore temporary files and folders
+summer_ML/
+
+temp_backup/ 
+
+
+
+
